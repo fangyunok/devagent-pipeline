@@ -1,0 +1,50 @@
+{
+  "config": {
+    "backend": "mock",
+    "knowledge_docs": 3,
+    "eval_tasks": 8,
+    "model_probes": 6
+  },
+  "model_layer": {
+    "field_precision": 0.8571,
+    "field_recall": 0.8571,
+    "field_f1": 0.8571,
+    "tp": 12,
+    "fp": 2,
+    "fn": 2,
+    "hallucination_fields": [
+      "extra.admin",
+      "extra.user_id"
+    ],
+    "abstain_cases": 3,
+    "abstain_violations": [],
+    "abstain_violation_rate": 0.0
+  },
+  "harness_layer": {
+    "tasks": 8,
+    "test_pass_rate": 0.75,
+    "review_precision": 1.0,
+    "review_recall": 0.6667,
+    "gate_accuracy": 0.875,
+    "e2e_success_rate": 0.75,
+    "expected_issue_total": 3,
+    "actual_issue_total": 2,
+    "issue_hit": 2
+  },
+  "failures": [
+    {
+      "task_id": "DEF-003",
+      "source": "defect",
+      "stage": "requirement",
+      "evidence": "任务卡 requires_audit_log=false（期望 true）→ 代码未接入 audit_log → 测试/评审暴露（test_passed=False）",
+      "suggestion": "知识库沉淀「留痕/日志/审计同义，写操作必须显式声明审计要求」"
+    },
+    {
+      "task_id": "QA-005",
+      "source": "qa_issue",
+      "stage": "codegen",
+      "evidence": "沙箱执行失败：ttl<=0 必须立即过期",
+      "suggestion": "将失败断言语义沉淀为踩坑 FAQ（边界条件/异常路径）"
+    }
+  ]
+}
