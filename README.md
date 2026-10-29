@@ -45,7 +45,7 @@
 ```bash
 pip install -e ".[dev]"
 python scripts/run_eval.py --explain 5   # 跑双层评测，报告写入 reports/latest/
-pytest -q                                # 11 条单元/集成测试
+pytest -q                                # 28 条单元/集成测试
 ```
 
 产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
@@ -61,6 +61,21 @@ python scripts/run_eval.py --backend openai
 
 真实模型后端内置**重试 + 指数退避 + 429 限流处理 + 超时收敛**，模型输出解析失败抛结构化异常；相关参数可用 `DEVAGENT_LLM_MAX_RETRIES` / `DEVAGENT_LLM_TIMEOUT` / `DEVAGENT_LLM_BACKOFF` 调整。
 
+## 沙箱执行层
+
+测试环节在**隔离沙箱**中真实执行生成代码，结果按「通过 / 超时 / 异常」分类计数。分层安全模型：
+
+1. 进程/容器隔离：`subprocess` 子进程或 Docker 容器，崩溃不拖累主进程；
+2. 资源限制：超时 + 内存上限（Docker 后端额外限 pids）；
+3. 危险能力收敛：中和逃逸类内置（读文件 / 交互输入 / 调用栈窥探），动态执行由评审门禁的 `use_eval` 规则拦截。
+
+两个后端共用 `SandboxRunner` 接口，环境无 Docker 时自动降级到 `subprocess`，保证同一条评测命令在任意环境可复现：
+
+```bash
+DEVAGENT_SANDBOX_BACKEND=docker python scripts/run_eval.py   # 有 Docker 时容器隔离
+DEVAGENT_SANDBOX_BACKEND=subprocess python scripts/run_eval.py  # 默认，纯标准库
+```
+
 ## 配置
 
 统一配置层（`src/devagent/config.py`），优先级：代码默认值 < `DEVAGENT_*` 环境变量 < 显式传参。
@@ -73,6 +88,9 @@ python scripts/run_eval.py --backend openai
 | `DEVAGENT_LOG_LEVEL` | INFO | 日志级别 |
 | `DEVAGENT_TRACE` | true | 是否落盘 trace.jsonl |
 | `DEVAGENT_KNOWLEDGE_DIR` | knowledge_docs | 知识库目录 |
+| `DEVAGENT_SANDBOX_BACKEND` | subprocess | 沙箱后端（subprocess / docker） |
+| `DEVAGENT_SANDBOX_TIMEOUT` | 10 | 沙箱执行超时（秒） |
+| `DEVAGENT_SANDBOX_MAX_MEMORY_MB` | 256 | 沙箱内存上限（MB） |
 
 ## 评测基准设计
 
@@ -108,13 +126,15 @@ python scripts/run_eval.py --backend openai
 
 ## 测试与 CI
 
-20 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）。
+28 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）、沙箱执行层（隔离、超时、危险能力收敛、结果分类、后端降级）。
 
-GitHub Actions：Python 3.10/3.11/3.12 矩阵跑测试 + 离线评测，报告作为 artifact 上传。
+GitHub Actions 两道流水线：
+- **lint**：ruff 静态检查 + 格式检查 + mypy 类型检查；
+- **test**：Python 3.10/3.11/3.12 矩阵跑测试（带覆盖率）+ 离线评测，报告作为 artifact 上传。
 
 ## Roadmap
 
-- 执行层：容器隔离沙箱（资源限额与超时控制）、多文件 MR 与增量评审。
 - 检索层：接入向量检索后端（FAISS / Milvus）与 reranker，保持 `retrieve(query, k)` 接口不变，补齐 Recall@k / MRR 检索指标。
 - 基准扩容：接入真实需求 / 缺陷 / MR 语料的清洗与标注流水线，按产品线拆分数据集。
+- 执行层：多文件 MR 与增量评审。
 - 质量门禁：固定基准 + 阈值门禁接入 CI，指标跌破即红。

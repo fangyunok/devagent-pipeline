@@ -1,5 +1,5 @@
 {
-  "run_id": "dfe4cdb09b66",
+  "run_id": "669f60040084",
   "config": {
     "backend": "mock",
     "knowledge_docs": 3,
@@ -49,9 +49,9 @@
     }
   ],
   "stage_durations_ms": {
-    "requirement": 1.32,
-    "codegen": 1.39,
-    "test": 0.31,
-    "review": 1.2
+    "requirement": 0.74,
+    "codegen": 0.81,
+    "test": 836.14,
+    "review": 0.71
   }
 }
