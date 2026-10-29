@@ -1,4 +1,5 @@
 """编码 Agent：任务卡 + 检索到的编码规范/踩坑 FAQ → 代码变更（MR）。"""
+
 from __future__ import annotations
 
 import json
@@ -29,8 +30,7 @@ class CoderAgent:
             f"KNOWLEDGE:\n{self.knowledge.format_for_prompt(docs)}\n"
             f"ORIGINAL_INPUT:\n{original_input}"
         )
-        LOGGER.info("coder: 生成代码 模块=%s（注入 %d 篇知识）",
-                    card.target_module, len(docs))
+        LOGGER.info("coder: 生成代码 模块=%s（注入 %d 篇知识）", card.target_module, len(docs))
         data = extract_json(self.llm.complete(SYSTEM, user))
         return CodeChange(
             task_id=card.task_id,

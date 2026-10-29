@@ -4,6 +4,7 @@
 - Trace：一次全链路运行的过程记录，落盘为 JSON Lines（每事件一行），
   供评测回溯、耗时分析、跨版本对比使用。开/关由 config.trace_enabled 控制。
 """
+
 from __future__ import annotations
 
 import json
@@ -21,8 +22,7 @@ def configure_logging(level: str = "INFO") -> None:
     if LOGGER.handlers:
         return
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter(
-        "%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
     LOGGER.addHandler(handler)
     LOGGER.setLevel(level.upper())
     LOGGER.propagate = False
@@ -41,8 +41,15 @@ class Trace:
         if not self.enabled:
             return
         self._stage_start[stage] = time.monotonic()
-        self.events.append({"run_id": self.run_id, "event": "stage_start",
-                            "stage": stage, "ts": time.time(), **fields})
+        self.events.append(
+            {
+                "run_id": self.run_id,
+                "event": "stage_start",
+                "stage": stage,
+                "ts": time.time(),
+                **fields,
+            }
+        )
 
     def stage_end(self, stage: str, **fields: Any) -> None:
         if not self.enabled:
@@ -51,15 +58,21 @@ class Trace:
         duration_ms = None
         if start is not None:
             duration_ms = round((time.monotonic() - start) * 1000, 2)
-        self.events.append({"run_id": self.run_id, "event": "stage_end",
-                            "stage": stage, "ts": time.time(),
-                            "duration_ms": duration_ms, **fields})
+        self.events.append(
+            {
+                "run_id": self.run_id,
+                "event": "stage_end",
+                "stage": stage,
+                "ts": time.time(),
+                "duration_ms": duration_ms,
+                **fields,
+            }
+        )
 
     def record(self, event: str, **fields: Any) -> None:
         if not self.enabled:
             return
-        self.events.append({"run_id": self.run_id, "event": event,
-                            "ts": time.time(), **fields})
+        self.events.append({"run_id": self.run_id, "event": event, "ts": time.time(), **fields})
 
     def write(self, path: str | Path) -> None:
         """把事件流落盘为 JSON Lines；未启用时跳过。"""

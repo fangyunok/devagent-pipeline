@@ -6,6 +6,7 @@
 
 门禁失败（阈值不满足或较基线回归）时以非零退出码退出，供 CI 拦截质量退化。
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,17 +36,31 @@ def main() -> None:
     parser.add_argument("--data-dir", default=str(ROOT / "data"))
     parser.add_argument("--knowledge-dir", default=str(ROOT / "knowledge_docs"))
     parser.add_argument("--out-dir", default=str(ROOT / "reports" / "latest"))
-    parser.add_argument("--explain", type=int, default=0, help="报告中最多展示 N 条 Model 层失分样例，0 为全部")
-    parser.add_argument("--threshold", action="append", default=[],
-                        help="核心指标最低阈值，如 --threshold e2e_success_rate=0.7（可重复）")
-    parser.add_argument("--baseline", default=None, help="历史基线 summary.json，用于跨版本回归对比")
-    parser.add_argument("--fail-on-regression", action="store_true",
-                        help="门禁不通过（阈值不足或较基线回归）时以非零退出码退出")
+    parser.add_argument(
+        "--explain", type=int, default=0, help="报告中最多展示 N 条 Model 层失分样例，0 为全部"
+    )
+    parser.add_argument(
+        "--threshold",
+        action="append",
+        default=[],
+        help="核心指标最低阈值，如 --threshold e2e_success_rate=0.7（可重复）",
+    )
+    parser.add_argument(
+        "--baseline", default=None, help="历史基线 summary.json，用于跨版本回归对比"
+    )
+    parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="门禁不通过（阈值不足或较基线回归）时以非零退出码退出",
+    )
     args = parser.parse_args()
 
     summary = run_evaluation(
-        args.knowledge_dir, args.data_dir, args.out_dir,
-        backend=args.backend, explain=args.explain,
+        args.knowledge_dir,
+        args.data_dir,
+        args.out_dir,
+        backend=args.backend,
+        explain=args.explain,
         thresholds=_parse_thresholds(args.threshold) or None,
         baseline=args.baseline,
     )

@@ -1,4 +1,5 @@
 """评审 Agent（ai-review）：任务卡 + 代码 + 编码规范 → 问题定位与门禁结论。"""
+
 from __future__ import annotations
 
 import json
@@ -35,6 +36,10 @@ class ReviewerAgent:
             approved=bool(data.get("approved", True)),
             retrieved_knowledge=[d.doc_id for d in docs],
         )
-        LOGGER.info("reviewer: 评审 %s approved=%s issues=%d",
-                    card.task_id, report.approved, len(report.issues))
+        LOGGER.info(
+            "reviewer: 评审 %s approved=%s issues=%d",
+            card.task_id,
+            report.approved,
+            len(report.issues),
+        )
         return report

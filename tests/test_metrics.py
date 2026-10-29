@@ -1,4 +1,5 @@
 """指标口径单测：幻觉双罚、弃答同口径、评审检出与门禁。"""
+
 import sys
 from pathlib import Path
 
@@ -27,10 +28,18 @@ def test_flatten_card_ignores_empty_and_keeps_extra():
 
 def test_abstention_rate_uses_same_denominator():
     records = [
-        {"task_id": "A", "comparison": {"tp": 0, "fp": 0, "fn": 0, "hallucinated": []},
-         "abstain_case": True, "abstain_violation": False},
-        {"task_id": "B", "comparison": {"tp": 0, "fp": 1, "fn": 0, "hallucinated": ["x"]},
-         "abstain_case": True, "abstain_violation": True},
+        {
+            "task_id": "A",
+            "comparison": {"tp": 0, "fp": 0, "fn": 0, "hallucinated": []},
+            "abstain_case": True,
+            "abstain_violation": False,
+        },
+        {
+            "task_id": "B",
+            "comparison": {"tp": 0, "fp": 1, "fn": 0, "hallucinated": ["x"]},
+            "abstain_case": True,
+            "abstain_violation": True,
+        },
     ]
     m = summarize_model(records)
     assert m["abstain_cases"] == 2
@@ -40,10 +49,22 @@ def test_abstention_rate_uses_same_denominator():
 
 def test_harness_review_recall_and_gate():
     records = [
-        {"task_id": "T1", "test_passed": True, "expected_issues": ["use_eval"],
-         "actual_issues": ["use_eval"], "gate_correct": True, "e2e_success": True},
-        {"task_id": "T2", "test_passed": False, "expected_issues": ["missing_audit_log"],
-         "actual_issues": [], "gate_correct": False, "e2e_success": False},
+        {
+            "task_id": "T1",
+            "test_passed": True,
+            "expected_issues": ["use_eval"],
+            "actual_issues": ["use_eval"],
+            "gate_correct": True,
+            "e2e_success": True,
+        },
+        {
+            "task_id": "T2",
+            "test_passed": False,
+            "expected_issues": ["missing_audit_log"],
+            "actual_issues": [],
+            "gate_correct": False,
+            "e2e_success": False,
+        },
     ]
     h = summarize_harness(records)
     assert h["review_recall"] == 0.5

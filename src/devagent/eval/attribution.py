@@ -3,6 +3,7 @@
 例：写操作留痕要求在需求阶段被漏提取，直到测试断言/评审才暴露，
 根因仍记 requirement，并保留证据链（任务卡缺字段 → 代码无 audit_log → 断言失败）。
 """
+
 from __future__ import annotations
 
 from ..schemas import PipelineResult
@@ -23,15 +24,14 @@ def attribute_failure(task: dict, result: PipelineResult) -> dict | None:
         return {
             "stage": "requirement",
             "evidence": "任务卡 requires_audit_log=false（期望 true）→ 代码未接入 audit_log → "
-                        f"测试/评审暴露（test_passed={result.tests.passed}）",
+            f"测试/评审暴露（test_passed={result.tests.passed}）",
             "suggestion": "知识库沉淀「留痕/日志/审计同义，写操作必须显式声明审计要求」",
         }
     if expected.get("target_module") and result.card.target_module != expected["target_module"]:
         return {
             "stage": "requirement",
             "evidence": (
-                f"target_module={result.card.target_module!r}"
-                f"（期望 {expected['target_module']!r}）"
+                f"target_module={result.card.target_module!r}（期望 {expected['target_module']!r}）"
             ),
             "suggestion": "模块地图补充该模块的别名与归属描述",
         }

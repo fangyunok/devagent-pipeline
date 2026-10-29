@@ -4,6 +4,7 @@
 各 Agent 构造 prompt 前检索相关片段注入，实现「领域知识 → 生成质量」。
 检索默认关键词加权打分，接口保持 retrieve(query, k) 语义，可平滑替换为向量实现。
 """
+
 from __future__ import annotations
 
 import re

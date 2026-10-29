@@ -6,6 +6,7 @@
    标出上涨/下跌/持平，并给出回归判定（指标跌破基线的容忍度）。
 3. 门禁结论：结构化输出，供 CI 以非零退出码拦截质量退化。
 """
+
 from __future__ import annotations
 
 import json
@@ -38,14 +39,22 @@ def _flat_metrics(model_layer: dict[str, Any], harness_layer: dict[str, Any]) ->
         flat[key] = model_layer.get(key, 0.0)
     for key in _LOWER_IS_BETTER:
         flat[key] = model_layer.get(key, 0.0)
-    for key in ("test_pass_rate", "review_precision", "review_recall",
-                "gate_accuracy", "e2e_success_rate"):
+    for key in (
+        "test_pass_rate",
+        "review_precision",
+        "review_recall",
+        "gate_accuracy",
+        "e2e_success_rate",
+    ):
         flat[key] = harness_layer.get(key, 0.0)
     return flat
 
 
-def check_thresholds(model_layer: dict[str, Any], harness_layer: dict[str, Any],
-                     thresholds: dict[str, float] | None = None) -> dict[str, Any]:
+def check_thresholds(
+    model_layer: dict[str, Any],
+    harness_layer: dict[str, Any],
+    thresholds: dict[str, float] | None = None,
+) -> dict[str, Any]:
     """阈值校验。thresholds 为 {指标名: 最低值}，缺省用内置默认阈值。"""
     if thresholds is None:
         thresholds = _default_thresholds()
@@ -54,8 +63,14 @@ def check_thresholds(model_layer: dict[str, Any], harness_layer: dict[str, Any],
     for key, floor in thresholds.items():
         value = flat.get(key, 0.0)
         if value < floor:
-            violations.append({"metric": key, "value": value, "threshold": floor,
-                               "delta": round(value - floor, 4)})
+            violations.append(
+                {
+                    "metric": key,
+                    "value": value,
+                    "threshold": floor,
+                    "delta": round(value - floor, 4),
+                }
+            )
     return {
         "passed": not violations,
         "violations": violations,
@@ -83,13 +98,15 @@ def load_baseline(path: str | Path) -> dict[str, Any]:
     return data
 
 
-def compare_baseline(model_layer: dict[str, Any], harness_layer: dict[str, Any],
-                     baseline: dict[str, Any],
-                     tolerance: float = _DEFAULT_TOLERANCE) -> dict[str, Any]:
+def compare_baseline(
+    model_layer: dict[str, Any],
+    harness_layer: dict[str, Any],
+    baseline: dict[str, Any],
+    tolerance: float = _DEFAULT_TOLERANCE,
+) -> dict[str, Any]:
     """与历史基线逐指标对比，给出涨/跌/平与回归判定。"""
     flat = _flat_metrics(model_layer, harness_layer)
-    base_flat = _flat_metrics(baseline.get("model_layer", {}),
-                              baseline.get("harness_layer", {}))
+    base_flat = _flat_metrics(baseline.get("model_layer", {}), baseline.get("harness_layer", {}))
     diffs: list[dict[str, Any]] = []
     regressions: list[dict[str, Any]] = []
     for key, value in flat.items():
@@ -104,11 +121,14 @@ def compare_baseline(model_layer: dict[str, Any], harness_layer: dict[str, Any],
         else:
             direction = "down"
         # 越低越好：涨过容忍即回归；其余：跌过容忍即回归。
-        regressed = (
-            delta > tolerance if key in _LOWER_IS_BETTER else delta < -tolerance
-        )
-        entry = {"metric": key, "baseline": base, "current": value,
-                 "delta": delta, "direction": direction}
+        regressed = delta > tolerance if key in _LOWER_IS_BETTER else delta < -tolerance
+        entry = {
+            "metric": key,
+            "baseline": base,
+            "current": value,
+            "delta": delta,
+            "direction": direction,
+        }
         diffs.append(entry)
         if regressed:
             regressions.append(entry)
@@ -120,8 +140,7 @@ def compare_baseline(model_layer: dict[str, Any], harness_layer: dict[str, Any],
     }
 
 
-def write_summary(summary: dict[str, Any], gate: dict[str, Any],
-                  out_dir: str | Path) -> Path:
+def write_summary(summary: dict[str, Any], gate: dict[str, Any], out_dir: str | Path) -> Path:
     """把评测 summary + 门禁结论合写为机器可读 summary.json。"""
     path = Path(out_dir) / "summary.json"
     payload = dict(summary)

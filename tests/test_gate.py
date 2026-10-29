@@ -1,4 +1,5 @@
 """质量门禁与历史基线对比的单元测试。"""
+
 from __future__ import annotations
 
 from devagent.eval.gate import (
@@ -12,12 +13,17 @@ from devagent.eval.gate import (
 
 def _sample_layers():
     model = {
-        "field_precision": 0.8571, "field_recall": 0.8571, "field_f1": 0.8571,
+        "field_precision": 0.8571,
+        "field_recall": 0.8571,
+        "field_f1": 0.8571,
         "abstain_violation_rate": 0.0,
     }
     harness = {
-        "test_pass_rate": 0.75, "review_precision": 0.6667,
-        "review_recall": 0.6667, "gate_accuracy": 0.875, "e2e_success_rate": 0.75,
+        "test_pass_rate": 0.75,
+        "review_precision": 0.6667,
+        "review_recall": 0.6667,
+        "gate_accuracy": 0.875,
+        "e2e_success_rate": 0.75,
     }
     return model, harness
 

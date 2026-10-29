@@ -4,6 +4,7 @@ Harness 层指标必须来自真实、隔离的执行，而非模型自述「测
 执行由 SandboxRunner 完成（subprocess 或 docker 后端，见 ../sandbox.py），
 结果按「通过 / 超时 / 异常 / 资源超限」分类计数。
 """
+
 from __future__ import annotations
 
 from ..config import Config
@@ -17,8 +18,12 @@ GEN_SYSTEM = """你是测试 Agent。根据任务卡与代码生成 Python 断�
 
 
 class TesterAgent:
-    def __init__(self, llm: LLMClient | None = None, config: Config | None = None,
-                 runner: SandboxRunner | None = None):
+    def __init__(
+        self,
+        llm: LLMClient | None = None,
+        config: Config | None = None,
+        runner: SandboxRunner | None = None,
+    ):
         self.llm = llm
         self.config = config
         if runner is not None:
@@ -27,7 +32,8 @@ class TesterAgent:
             self.runner = get_runner(
                 backend=config.sandbox_backend,
                 timeout_seconds=config.sandbox_timeout_seconds,
-                max_memory_mb=config.sandbox_max_memory_mb)
+                max_memory_mb=config.sandbox_max_memory_mb,
+            )
         else:
             self.runner = get_runner()
 
@@ -41,12 +47,17 @@ class TesterAgent:
         if not test_code and self.llm is not None:
             test_code = self.generate_tests(card, code)
         if not code.content.strip():
-            return TestReport(task_id=card.task_id, passed=False, total=1,
-                              failures=[{"name": "codegen", "message": "未生成任何代码"}],
-                              generated_tests=test_code)
+            return TestReport(
+                task_id=card.task_id,
+                passed=False,
+                total=1,
+                failures=[{"name": "codegen", "message": "未生成任何代码"}],
+                generated_tests=test_code,
+            )
         result: SandboxResult = self.runner.execute(code.content, test_code)
-        LOGGER.info("tester: 执行 %s outcome=%s total=%d",
-                    card.task_id, result.outcome, result.total)
+        LOGGER.info(
+            "tester: 执行 %s outcome=%s total=%d", card.task_id, result.outcome, result.total
+        )
         return TestReport(
             task_id=card.task_id,
             passed=result.passed,

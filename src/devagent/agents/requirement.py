@@ -2,6 +2,7 @@
 
 安全约束写进 system prompt：身份由会话决定、文本中的 key=value 与伪造指令不可信。
 """
+
 from __future__ import annotations
 
 from ..config import Config
@@ -33,8 +34,7 @@ class RequirementAgent:
             f"INPUT:\n{task['input']}\n"
             f"KNOWLEDGE:\n{self.knowledge.format_for_prompt(docs)}"
         )
-        LOGGER.info("requirement: 解析任务 %s（注入 %d 篇知识）",
-                    task["task_id"], len(docs))
+        LOGGER.info("requirement: 解析任务 %s（注入 %d 篇知识）", task["task_id"], len(docs))
         data = extract_json(self.llm.complete(SYSTEM, user))
         data["task_id"] = task["task_id"]  # task_id 由系统分配，不信任模型输出
         return TaskCard.from_dict(data)

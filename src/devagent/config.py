@@ -3,6 +3,7 @@
 配置优先级：代码默认值 < 环境变量（DEVAGENT_ 前缀）< 显式传参。
 所有模块从这里取配置，避免常量散落、便于多环境复用。
 """
+
 from __future__ import annotations
 
 import os

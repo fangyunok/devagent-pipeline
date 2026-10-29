@@ -7,6 +7,7 @@
 
 所有 Agent 只依赖 complete(system, user)，换后端不改业务代码。
 """
+
 from __future__ import annotations
 
 import json
@@ -87,23 +88,24 @@ class MockLLM:
         for k, v in re.findall(r"\b([a-z_]{2,})=([^\s，。；]+)", text):
             extra[k] = v
         criteria = [s.strip() for s in re.split(r"[；;]", text) if s.strip()]
-        return json.dumps({
-            "task_id": task_id,
-            "title": text[:30],
-            "target_module": module,
-            "language": "python",
-            "acceptance_criteria": criteria,
-            "requires_audit_log": audit,
-            "extra": extra,
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "task_id": task_id,
+                "title": text[:30],
+                "target_module": module,
+                "language": "python",
+                "acceptance_criteria": criteria,
+                "requires_audit_log": audit,
+                "extra": extra,
+            },
+            ensure_ascii=False,
+        )
 
     # ---------- 代码生成 ----------
     def _coder(self, user: str) -> str:
         card = json.loads(user.split("TASK_CARD:\n", 1)[1].split("\nKNOWLEDGE:", 1)[0])
         raw_input = (
-            user.split("ORIGINAL_INPUT:\n", 1)[1].strip()
-            if "ORIGINAL_INPUT:" in user
-            else ""
+            user.split("ORIGINAL_INPUT:\n", 1)[1].strip() if "ORIGINAL_INPUT:" in user else ""
         )
         module = card.get("target_module") or "common"
         audit = bool(card.get("requires_audit_log"))
@@ -121,10 +123,13 @@ class MockLLM:
             content += '\nPASSWORD = "debug123"\n'
         if "动态执行" in raw_input:
             content += "\ndef run(expr):\n    return eval(expr)\n"
-        return json.dumps({
-            "files": [{"path": f"{module}/impl.py", "content": content}],
-            "summary": f"实现 {module} 模块需求",
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "files": [{"path": f"{module}/impl.py", "content": content}],
+                "summary": f"实现 {module} 模块需求",
+            },
+            ensure_ascii=False,
+        )
 
     # ---------- 评审 ----------
     def _reviewer(self, user: str) -> str:
@@ -134,30 +139,46 @@ class MockLLM:
         if card.get("requires_audit_log") and "audit_log(" not in code.replace(
             "def audit_log(", ""
         ):
-            issues.append({
-                "severity": "major", "category": "missing_audit_log",
-                "location": "put", "message": "任务卡要求审计日志，但写操作未调用 audit_log",
-            })
+            issues.append(
+                {
+                    "severity": "major",
+                    "category": "missing_audit_log",
+                    "location": "put",
+                    "message": "任务卡要求审计日志，但写操作未调用 audit_log",
+                }
+            )
         if re.search(r'(?i)(password|secret)\s*=\s*"[^"]+"', code):
-            issues.append({
-                "severity": "major", "category": "hardcoded_secret",
-                "location": "global", "message": "检测到硬编码口令，违反编码规范 SEC-01",
-            })
+            issues.append(
+                {
+                    "severity": "major",
+                    "category": "hardcoded_secret",
+                    "location": "global",
+                    "message": "检测到硬编码口令，违反编码规范 SEC-01",
+                }
+            )
         if re.search(r"\beval\(", code):
-            issues.append({
-                "severity": "critical", "category": "use_eval",
-                "location": "run", "message": "禁止使用 eval 动态执行，违反编码规范 SEC-02",
-            })
+            issues.append(
+                {
+                    "severity": "critical",
+                    "category": "use_eval",
+                    "location": "run",
+                    "message": "禁止使用 eval 动态执行，违反编码规范 SEC-02",
+                }
+            )
         if re.search(r"except\s*:", code):
-            issues.append({
-                "severity": "minor", "category": "bare_except",
-                "location": "-", "message": "裸 except 会吞掉异常，建议捕获具体异常类型",
-            })
+            issues.append(
+                {
+                    "severity": "minor",
+                    "category": "bare_except",
+                    "location": "-",
+                    "message": "裸 except 会吞掉异常，建议捕获具体异常类型",
+                }
+            )
         approved = not any(i["severity"] in ("critical", "major") for i in issues)
         return json.dumps({"issues": issues, "approved": approved}, ensure_ascii=False)
 
 
-KV_TEMPLATE = '''import time
+KV_TEMPLATE = """import time
 
 STORE = {}
 AUDIT = []
@@ -183,10 +204,10 @@ def get(key):
         del STORE[key]
         return None
     return value
-'''
+"""
 
-SQL_TEMPLATE = '''def parse_where(sql):
-    """解析简单等值 WHERE 子句，返回条件字典。"""
+SQL_TEMPLATE = """def parse_where(sql):
+    \"\"\"解析简单等值 WHERE 子句，返回条件字典。\"\"\"
     result = {}
     low = sql.lower()
     if "where" not in low:
@@ -195,23 +216,30 @@ SQL_TEMPLATE = '''def parse_where(sql):
     for part in clause.split("and"):
         if "=" in part:
             k, v = part.split("=", 1)
-            result[k.strip()] = v.strip().strip("'\\"")
+            result[k.strip()] = v.strip().strip("'\\\"")
     return result
-'''
+"""
 
-GENERIC_TEMPLATE = '''def handle():
+GENERIC_TEMPLATE = """def handle():
     return "ok"
-'''
+"""
 
 
 class OpenAICompatibleClient:
     """OpenAI 兼容后端：重试 + 指数退避 + 429 限流 + 超时收敛。"""
 
-    def __init__(self, model: str | None = None, base_url: str | None = None,
-                 api_key: str | None = None, timeout: float = 120.0,
-                 max_retries: int = 3, backoff_base: float = 1.0):
-        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL",
-                          "https://api.openai.com/v1")).rstrip("/")
+    def __init__(
+        self,
+        model: str | None = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        timeout: float = 120.0,
+        max_retries: int = 3,
+        backoff_base: float = 1.0,
+    ):
+        self.base_url = (
+            base_url or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        ).rstrip("/")
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         self.timeout = timeout
@@ -221,14 +249,16 @@ class OpenAICompatibleClient:
             raise LLMError("使用真实模型后端前请设置 OPENAI_API_KEY", retryable=False)
 
     def complete(self, system: str, user: str) -> str:
-        payload = json.dumps({
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0,
-        }).encode("utf-8")
+        payload = json.dumps(
+            {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": 0,
+            }
+        ).encode("utf-8")
         url = f"{self.base_url}/chat/completions"
         headers = {
             "Content-Type": "application/json",
@@ -246,18 +276,18 @@ class OpenAICompatibleClient:
                 last_err = LLMError(f"LLM 请求失败 HTTP {exc.code}", retryable=retryable)
                 if not retryable or attempt >= self.max_retries:
                     break
-                wait = self.backoff_base * (2 ** attempt)
-                LOGGER.warning("LLM 请求 HTTP %s，第 %d 次重试，%.1fs 后重试",
-                               exc.code, attempt + 1, wait)
+                wait = self.backoff_base * (2**attempt)
+                LOGGER.warning(
+                    "LLM 请求 HTTP %s，第 %d 次重试，%.1fs 后重试", exc.code, attempt + 1, wait
+                )
                 time.sleep(wait)
             except (urllib.error.URLError, TimeoutError) as exc:
                 retryable = True
                 last_err = LLMError(f"LLM 网络/超时错误: {exc}", retryable=True)
                 if attempt >= self.max_retries:
                     break
-                wait = self.backoff_base * (2 ** attempt)
-                LOGGER.warning("LLM 网络错误，第 %d 次重试，%.1fs 后重试",
-                               attempt + 1, wait)
+                wait = self.backoff_base * (2**attempt)
+                LOGGER.warning("LLM 网络错误，第 %d 次重试，%.1fs 后重试", attempt + 1, wait)
                 time.sleep(wait)
         raise last_err if last_err else LLMError("LLM 调用失败", retryable=False)
 
@@ -265,13 +295,17 @@ class OpenAICompatibleClient:
 def get_llm(backend: str = "mock", config=None) -> LLMClient:
     if config is None:
         from .config import default_config
+
         config = default_config
     if backend == "mock":
         return MockLLM()
     if backend == "openai":
         return OpenAICompatibleClient(
-            model=config.openai_model, base_url=config.openai_base_url,
-            api_key=config.openai_api_key, timeout=config.llm_timeout_seconds,
+            model=config.openai_model,
+            base_url=config.openai_base_url,
+            api_key=config.openai_api_key,
+            timeout=config.llm_timeout_seconds,
             max_retries=config.llm_max_retries,
-            backoff_base=config.llm_backoff_base_seconds)
+            backoff_base=config.llm_backoff_base_seconds,
+        )
     raise LLMError(f"未知后端: {backend}", retryable=False)

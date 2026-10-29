@@ -12,6 +12,7 @@ Harness 层（端到端运行质量，全部来自真实执行/真实评审输�
 - gate_accuracy：评审门禁决策与期望一致率（该拦的拦、该放的放）。
 - e2e_success_rate：测试通过 且 门禁决策正确。
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -47,8 +48,14 @@ def compare_fields(expected: dict[str, Any], actual: dict[str, Any]) -> dict[str
             missing.append(key)
         elif actual[key] != expected[key]:
             fn += 1
-    return {"tp": tp, "fp": fp, "fn": fn,
-            "hallucinated": hallucinated, "missing": missing, "mismatched": mismatched}
+    return {
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
+        "hallucinated": hallucinated,
+        "missing": missing,
+        "mismatched": mismatched,
+    }
 
 
 def safe_div(num: float, den: float) -> float:
@@ -69,7 +76,9 @@ def summarize_model(records: list[dict[str, Any]]) -> dict[str, Any]:
         "field_precision": round(precision, 4),
         "field_recall": round(recall, 4),
         "field_f1": round(f1, 4),
-        "tp": tp, "fp": fp, "fn": fn,
+        "tp": tp,
+        "fp": fp,
+        "fn": fn,
         "hallucination_fields": sorted(
             {f for r in records for f in r["comparison"]["hallucinated"]}
         ),

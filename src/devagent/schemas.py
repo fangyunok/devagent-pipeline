@@ -5,6 +5,7 @@
 2. 失败案例可定位到具体环节（归因分析）；
 3. artifact 可落盘为评测样本，回流为新的评测数据。
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -30,8 +31,12 @@ class TaskCard:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TaskCard:
         known = {
-            "task_id", "title", "target_module", "language",
-            "acceptance_criteria", "requires_audit_log",
+            "task_id",
+            "title",
+            "target_module",
+            "language",
+            "acceptance_criteria",
+            "requires_audit_log",
         }
         kwargs = {k: v for k, v in data.items() if k in known}
         extra = dict(data.get("extra") or {})

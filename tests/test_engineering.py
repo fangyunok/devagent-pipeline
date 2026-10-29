@@ -1,4 +1,5 @@
 """工程化底座单测：配置、trace、LLM 重试与结构化报错。"""
+
 import json
 import sys
 import urllib.error
@@ -76,9 +77,15 @@ class _FakeResponse:
 
 def _make_client(max_retries=1):
     from devagent.llm import OpenAICompatibleClient
-    return OpenAICompatibleClient(api_key="sk-test", base_url="https://example.com",
-                                  model="m", timeout=1.0, max_retries=max_retries,
-                                  backoff_base=0.01)
+
+    return OpenAICompatibleClient(
+        api_key="sk-test",
+        base_url="https://example.com",
+        model="m",
+        timeout=1.0,
+        max_retries=max_retries,
+        backoff_base=0.01,
+    )
 
 
 def test_openai_client_retries_then_raises(monkeypatch):

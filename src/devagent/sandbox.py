@@ -7,6 +7,7 @@
 执行结果按「通过 / 超时 / 异常 / 资源超限」分类计数，替换原先进程内 exec() 的
 「一个 total=1 假数字」，让 Harness 层指标反映真实、隔离的执行质量。
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -30,7 +31,7 @@ class SandboxResult:
     passed: bool
     total: int
     exit_code: int = 0
-    outcome: str = "passed"          # passed | failed | timeout | resource_limit | error
+    outcome: str = "passed"  # passed | failed | timeout | resource_limit | error
     failures: list[dict[str, str]] = field(default_factory=list)
     stdout: str = ""
     stderr: str = ""
@@ -59,7 +60,12 @@ class SandboxRunner(Protocol):
 #    窥探调用栈 globals/locals/vars），保留 __import__（生成代码需 import time 等）
 #    与 eval（动态执行由 Reviewer 的 use_eval 规则在评审门禁拦截）。
 _BLOCKED_BUILTINS = {
-    "open", "input", "globals", "locals", "vars", "memoryview",
+    "open",
+    "input",
+    "globals",
+    "locals",
+    "vars",
+    "memoryview",
 }
 
 
@@ -71,7 +77,7 @@ def _make_harness(code: str, test_code: str) -> str:
 
     用唯一占位符 + replace 注入 code/test/blocked，避免与脚本内的 % / {} 冲突。
     """
-    harness = '''\
+    harness = """\
 import builtins
 import json
 import sys
@@ -96,11 +102,12 @@ except Exception as _e:
     _result["passed"] = False
     _result["failures"].append({"name": "runtime", "message": type(_e).__name__ + ": " + str(_e)})
 print(json.dumps(_result, ensure_ascii=False))
-'''
-    return (harness
-            .replace("__BLOCKED__", repr(sorted(_BLOCKED_BUILTINS)))
-            .replace("__CODE__", repr(code))
-            .replace("__TEST__", repr(test_code)))
+"""
+    return (
+        harness.replace("__BLOCKED__", repr(sorted(_BLOCKED_BUILTINS)))
+        .replace("__CODE__", repr(code))
+        .replace("__TEST__", repr(test_code))
+    )
 
 
 class SubprocessRunner:
@@ -117,25 +124,41 @@ class SubprocessRunner:
         cmd = [sys.executable, "-c", harness]
         try:
             proc = subprocess.run(
-                cmd, capture_output=True, text=True,
-                timeout=self.timeout_seconds, check=False,
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout_seconds,
+                check=False,
             )
         except subprocess.TimeoutExpired:
-            return SandboxResult(passed=False, total=1, outcome="timeout",
-                                 failures=[{"name": "timeout",
-                                            "message": f"执行超时（>{self.timeout_seconds}s）"}])
+            return SandboxResult(
+                passed=False,
+                total=1,
+                outcome="timeout",
+                failures=[{"name": "timeout", "message": f"执行超时（>{self.timeout_seconds}s）"}],
+            )
         if proc.returncode != 0:
-            return SandboxResult(passed=False, total=1, exit_code=proc.returncode,
-                                 outcome="error", stderr=proc.stderr,
-                                 failures=[{"name": "runtime",
-                                            "message": (proc.stderr or "执行异常").strip()[:200]}])
+            return SandboxResult(
+                passed=False,
+                total=1,
+                exit_code=proc.returncode,
+                outcome="error",
+                stderr=proc.stderr,
+                failures=[
+                    {"name": "runtime", "message": (proc.stderr or "执行异常").strip()[:200]}
+                ],
+            )
         try:
             data = json.loads(proc.stdout.strip() or "{}")
         except json.JSONDecodeError:
-            return SandboxResult(passed=False, total=1, outcome="error",
-                                 stdout=proc.stdout, stderr=proc.stderr,
-                                 failures=[{"name": "runtime",
-                                            "message": "沙箱输出无法解析"}])
+            return SandboxResult(
+                passed=False,
+                total=1,
+                outcome="error",
+                stdout=proc.stdout,
+                stderr=proc.stderr,
+                failures=[{"name": "runtime", "message": "沙箱输出无法解析"}],
+            )
         return SandboxResult(
             passed=bool(data.get("passed", False)),
             total=int(data.get("total", 1)),
@@ -153,9 +176,13 @@ class DockerRunner:
     保证同一条评测命令在无 Docker 环境也能跑出结果。
     """
 
-    def __init__(self, image: str = "python:3.11-slim",
-                 timeout_seconds: float = 10.0, max_memory_mb: int = 256,
-                 fallback: SandboxRunner | None = None):
+    def __init__(
+        self,
+        image: str = "python:3.11-slim",
+        timeout_seconds: float = 10.0,
+        max_memory_mb: int = 256,
+        fallback: SandboxRunner | None = None,
+    ):
         self.image = image
         self.timeout_seconds = timeout_seconds
         self.max_memory_mb = max_memory_mb
@@ -172,46 +199,72 @@ class DockerRunner:
         if not self._available:
             return self._fallback.execute(code, test_code)
         harness = _make_harness(code, test_code)
-        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False,
-                                         encoding="utf-8") as fh:
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as fh:
             fh.write(harness)
             tmp_path = fh.name
         try:
             cmd = [
-                "docker", "run", "--rm", "--network", "none",
-                "--memory", f"{self.max_memory_mb}m",
-                "--memory-swap", f"{self.max_memory_mb}m",
-                "--pids-limit", "64",
-                "-v", f"{Path(tmp_path)}:/app/run.py:ro",
-                self.image, "python", "/app/run.py",
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                "none",
+                "--memory",
+                f"{self.max_memory_mb}m",
+                "--memory-swap",
+                f"{self.max_memory_mb}m",
+                "--pids-limit",
+                "64",
+                "-v",
+                f"{Path(tmp_path)}:/app/run.py:ro",
+                self.image,
+                "python",
+                "/app/run.py",
             ]
             try:
-                proc = subprocess.run(cmd, capture_output=True, text=True,
-                                      timeout=self.timeout_seconds + 30, check=False)
+                proc = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout_seconds + 30,
+                    check=False,
+                )
             except subprocess.TimeoutExpired:
-                return SandboxResult(passed=False, total=1, outcome="timeout",
-                                     failures=[{"name": "timeout",
-                                                "message": f"容器执行超时（>{self.timeout_seconds}s）"}])
+                return SandboxResult(
+                    passed=False,
+                    total=1,
+                    outcome="timeout",
+                    failures=[
+                        {"name": "timeout", "message": f"容器执行超时（>{self.timeout_seconds}s）"}
+                    ],
+                )
             if proc.returncode != 0:
                 err_msg = (proc.stderr or "容器执行异常").strip()[:200]
-                return SandboxResult(passed=False, total=1, exit_code=proc.returncode,
-                                     outcome="error", stderr=proc.stderr,
-                                     failures=[{"name": "runtime", "message": err_msg}])
+                return SandboxResult(
+                    passed=False,
+                    total=1,
+                    exit_code=proc.returncode,
+                    outcome="error",
+                    stderr=proc.stderr,
+                    failures=[{"name": "runtime", "message": err_msg}],
+                )
             data = json.loads(proc.stdout.strip() or "{}")
             return SandboxResult(
                 passed=bool(data.get("passed", False)),
                 total=int(data.get("total", 1)),
                 outcome="passed" if data.get("passed") else "failed",
                 failures=data.get("failures", []),
-                stdout=proc.stdout, stderr=proc.stderr,
+                stdout=proc.stdout,
+                stderr=proc.stderr,
             )
         finally:
             with contextlib.suppress(OSError):
                 os.unlink(tmp_path)
 
 
-def get_runner(backend: str = "subprocess", timeout_seconds: float = 10.0,
-               max_memory_mb: int = 256) -> SandboxRunner:
+def get_runner(
+    backend: str = "subprocess", timeout_seconds: float = 10.0, max_memory_mb: int = 256
+) -> SandboxRunner:
     if backend == "docker":
         return DockerRunner(timeout_seconds=timeout_seconds, max_memory_mb=max_memory_mb)
     return SubprocessRunner(timeout_seconds=timeout_seconds, max_memory_mb=max_memory_mb)

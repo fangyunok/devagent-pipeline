@@ -1,4 +1,5 @@
 """全链路集成测试：真实执行、门禁拦截、错误传播归因、知识库检索。"""
+
 import sys
 from pathlib import Path
 
@@ -19,9 +20,14 @@ def pipeline():
 
 
 def _task(task_id, input_text, test_code="", expected_card=None, expected_issues=None):
-    return {"task_id": task_id, "source": "requirement", "input": input_text,
-            "test_code": test_code, "expected_card": expected_card or {},
-            "expected_issues": expected_issues or []}
+    return {
+        "task_id": task_id,
+        "source": "requirement",
+        "input": input_text,
+        "test_code": test_code,
+        "expected_card": expected_card or {},
+        "expected_issues": expected_issues or [],
+    }
 
 
 def test_normal_task_passes_end_to_end(pipeline):

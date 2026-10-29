@@ -3,6 +3,7 @@
 接入统一配置与结构化 trace：每个阶段记录起止与耗时，
 运行产出 JSON Lines trace（供评测回溯、耗时分析、跨版本对比）。
 """
+
 from __future__ import annotations
 
 import uuid
@@ -17,8 +18,12 @@ from .trace import LOGGER, Trace, configure_logging
 
 
 class DevPipeline:
-    def __init__(self, knowledge_dir: str | Path | None = None,
-                 backend: str | None = None, config: Config | None = None):
+    def __init__(
+        self,
+        knowledge_dir: str | Path | None = None,
+        backend: str | None = None,
+        config: Config | None = None,
+    ):
         self.config = config or load_config()
         configure_logging(self.config.log_level)
         if backend is not None:
@@ -31,8 +36,11 @@ class DevPipeline:
         self.coder = CoderAgent(self.llm, self.knowledge, self.config)
         self.tester = TesterAgent(self.llm, self.config)
         self.reviewer = ReviewerAgent(self.llm, self.knowledge, self.config)
-        LOGGER.info("DevPipeline 就绪：backend=%s knowledge_docs=%d",
-                    self.config.backend, self.knowledge.corpus_size())
+        LOGGER.info(
+            "DevPipeline 就绪：backend=%s knowledge_docs=%d",
+            self.config.backend,
+            self.knowledge.corpus_size(),
+        )
 
     def run_task(self, task: dict, trace: Trace | None = None) -> PipelineResult:
         """task: {task_id, source, input, test_code?}；expected_* 字段只用于评测，不进入链路。"""
@@ -43,13 +51,21 @@ class DevPipeline:
 
         trace.stage_start("requirement", task_id=tid)
         card = self.requirement.run(task)
-        trace.stage_end("requirement", task_id=tid, target_module=card.target_module,
-                        requires_audit_log=card.requires_audit_log)
+        trace.stage_end(
+            "requirement",
+            task_id=tid,
+            target_module=card.target_module,
+            requires_audit_log=card.requires_audit_log,
+        )
 
         trace.stage_start("codegen", task_id=tid)
         code = self.coder.run(card, original_input=task["input"])
-        trace.stage_end("codegen", task_id=tid, files=[f["path"] for f in code.files],
-                        retrieved_knowledge=code.retrieved_knowledge)
+        trace.stage_end(
+            "codegen",
+            task_id=tid,
+            files=[f["path"] for f in code.files],
+            retrieved_knowledge=code.retrieved_knowledge,
+        )
 
         trace.stage_start("test", task_id=tid)
         tests = self.tester.run(card, code, task.get("test_code", ""))
@@ -57,13 +73,12 @@ class DevPipeline:
 
         trace.stage_start("review", task_id=tid)
         review = self.reviewer.run(card, code)
-        trace.stage_end("review", task_id=tid, approved=review.approved,
-                        issue_count=len(review.issues))
+        trace.stage_end(
+            "review", task_id=tid, approved=review.approved, issue_count=len(review.issues)
+        )
 
-        trace.record("task_end", task_id=tid, passed=tests.passed,
-                     approved=review.approved)
-        return PipelineResult(task_id=tid, card=card, code=code,
-                              tests=tests, review=review)
+        trace.record("task_end", task_id=tid, passed=tests.passed, approved=review.approved)
+        return PipelineResult(task_id=tid, card=card, code=code, tests=tests, review=review)
 
 
 def new_run_id() -> str:
