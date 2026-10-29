@@ -42,3 +42,15 @@ jobs:
         with:
           name: eval-report-py${{ matrix.python-version }}
           path: reports/latest/
+
+  retrieval-faiss:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev,faiss]"
+      - name: Verify faiss backend retrieves
+        run: python -c "from devagent.retrieval import build_index, FaissVectorIndex; i = build_index('faiss'); assert isinstance(i, FaissVectorIndex); i.add('a', ['hello', 'world']); assert i.retrieve(['hello'], 1)[0].doc_id == 'a'; print('faiss backend OK')"

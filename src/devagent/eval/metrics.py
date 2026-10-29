@@ -88,6 +88,33 @@ def summarize_model(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def recall_at_k(hits: list[str], relevant: list[str], k: int) -> float:
+    """Recall@k：前 k 个命中里命中的相关文档数 / 相关文档总数。"""
+    if not relevant:
+        return 0.0
+    return safe_div(len(set(hits[:k]) & set(relevant)), len(relevant))
+
+
+def mrr(hits: list[str], relevant: list[str]) -> float:
+    """MRR：第一个相关文档出现在命中列表位置的倒数（位置从 1 起）。"""
+    for i, doc_id in enumerate(hits, start=1):
+        if doc_id in relevant:
+            return 1.0 / i
+    return 0.0
+
+
+def summarize_retrieval(records: list[dict[str, Any]], k: int = 3) -> dict[str, Any]:
+    """records: [{query, relevant, hits}]，hits 为按相似度降序的文档 id 列表。"""
+    n = len(records)
+    return {
+        "queries": n,
+        "recall_at_k": round(
+            safe_div(sum(recall_at_k(r["hits"], r["relevant"], k) for r in records), n), 4
+        ),
+        "mrr": round(safe_div(sum(mrr(r["hits"], r["relevant"]) for r in records), n), 4),
+    }
+
+
 def summarize_harness(records: list[dict[str, Any]]) -> dict[str, Any]:
     """records: [{task_id, test_passed, expected_issues, actual_issues,
     gate_correct, e2e_success}]"""

@@ -22,8 +22,8 @@
       ],
       "summary": "实现 kv_store 模块需求",
       "retrieved_knowledge": [
-        "coding_standards",
         "module_map",
+        "coding_standards",
         "faq"
       ]
     },
@@ -40,7 +40,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -85,7 +85,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -112,9 +112,9 @@
       ],
       "summary": "实现 kv_store 模块需求",
       "retrieved_knowledge": [
-        "coding_standards",
         "faq",
-        "module_map"
+        "module_map",
+        "coding_standards"
       ]
     },
     "tests": {
@@ -135,7 +135,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -163,8 +163,8 @@
       "summary": "实现 sql_parser 模块需求",
       "retrieved_knowledge": [
         "faq",
-        "coding_standards",
-        "module_map"
+        "module_map",
+        "coding_standards"
       ]
     },
     "tests": {
@@ -180,7 +180,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -230,7 +230,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -257,9 +257,9 @@
       ],
       "summary": "实现 kv_store 模块需求",
       "retrieved_knowledge": [
-        "coding_standards",
         "module_map",
-        "faq"
+        "faq",
+        "coding_standards"
       ]
     },
     "tests": {
@@ -282,7 +282,7 @@
       "approved": false,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -309,8 +309,8 @@
       ],
       "summary": "实现 sql_parser 模块需求",
       "retrieved_knowledge": [
-        "coding_standards",
         "faq",
+        "coding_standards",
         "module_map"
       ]
     },
@@ -334,7 +334,7 @@
       "approved": false,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   },
@@ -361,8 +361,8 @@
       ],
       "summary": "实现 common 模块需求",
       "retrieved_knowledge": [
-        "coding_standards",
         "faq",
+        "coding_standards",
         "module_map"
       ]
     },
@@ -379,7 +379,7 @@
       "approved": true,
       "retrieved_knowledge": [
         "coding_standards",
-        "module_map"
+        "faq"
       ]
     }
   }

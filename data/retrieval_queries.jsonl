@@ -1,0 +1,8 @@
+{"query": "kv_store 写操作需要记录审计日志", "relevant": ["coding_standards", "faq", "module_map"]}
+{"query": "TTL 小于等于零的键应该怎么处理", "relevant": ["coding_standards", "faq"]}
+{"query": "禁止使用 eval 执行外部输入", "relevant": ["coding_standards"]}
+{"query": "SQL 的 WHERE 条件值带引号怎么解析", "relevant": ["faq"]}
+{"query": "各个模块的负责人和关键接口是什么", "relevant": ["module_map"]}
+{"query": "密码和密钥不能硬编码在代码里", "relevant": ["coding_standards"]}
+{"query": "新需求应该归属到哪个模块", "relevant": ["module_map"]}
+{"query": "身份信息以服务端会话为准", "relevant": ["faq"]}

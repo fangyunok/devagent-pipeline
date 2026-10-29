@@ -14,7 +14,13 @@ from ..schemas import TaskCard
 from ..trace import Trace
 from .attribution import attribute_failure
 from .gate import check_thresholds, compare_baseline, load_baseline, write_summary
-from .metrics import compare_fields, flatten_card, summarize_harness, summarize_model
+from .metrics import (
+    compare_fields,
+    flatten_card,
+    summarize_harness,
+    summarize_model,
+    summarize_retrieval,
+)
 
 
 def load_jsonl(path: str | Path) -> list[dict[str, Any]]:
@@ -43,6 +49,7 @@ def run_evaluation(
     explain: int = 0,
     thresholds: dict[str, float] | None = None,
     baseline: str | Path | None = None,
+    retrieval_k: int = 3,
 ) -> dict[str, Any]:
     data_dir, out_dir = Path(data_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -51,6 +58,11 @@ def run_evaluation(
 
     tasks = load_jsonl(data_dir / "eval_tasks.jsonl")
     probes = load_jsonl(data_dir / "model_probes.jsonl")
+    retrieval_set = (
+        load_jsonl(data_dir / "retrieval_queries.jsonl")
+        if (data_dir / "retrieval_queries.jsonl").exists()
+        else []
+    )
 
     model_records, harness_records, failures, traces = [], [], [], []
     trace = Trace(run_id=run_id, enabled=pipeline.config.trace_enabled)
@@ -89,6 +101,19 @@ def run_evaluation(
     harness_metrics = summarize_harness(harness_records)
     candidates = _knowledge_candidates(failures, model_records)
 
+    # 检索评测：对标注集逐条跑检索，命中 id 顺序即相似度降序。
+    retrieval_records = []
+    for q in retrieval_set:
+        docs = pipeline.knowledge.retrieve(q["query"], k=retrieval_k)
+        retrieval_records.append(
+            {
+                "query": q["query"],
+                "relevant": q.get("relevant", []),
+                "hits": [d.doc_id for d in docs],
+            }
+        )
+    retrieval_metrics = summarize_retrieval(retrieval_records, k=retrieval_k)
+
     # 质量门禁：阈值校验 + 历史基线对比（有基线时）。
     gate = check_thresholds(model_metrics, harness_metrics, thresholds)
     if baseline is not None:
@@ -102,9 +127,12 @@ def run_evaluation(
             "knowledge_docs": pipeline.knowledge.corpus_size(),
             "eval_tasks": len(tasks),
             "model_probes": len(probes),
+            "retrieval_queries": len(retrieval_set),
+            "retrieval_k": retrieval_k,
         },
         "model_layer": model_metrics,
         "harness_layer": harness_metrics,
+        "retrieval_layer": retrieval_metrics,
         "failures": failures,
         "stage_durations_ms": trace.stage_durations_ms(),
         "gate": gate,
@@ -159,8 +187,9 @@ def _render_report(
     explain: int,
 ) -> str:
     m, h, cfg = summary["model_layer"], summary["harness_layer"], summary["config"]
+    r = summary.get("retrieval_layer")
     lines = [
-        "# 评测报告（Harness + Model 双层）",
+        "# 评测报告（Harness + Model + Retrieval 三层）",
         "",
         "## 指标口径",
         "- 字段级 P/R/F1：micro 汇总；precision 分母为模型实际吐出字段数，幻觉字段计假阳性，值不匹配同时计假阳性与漏检。",
@@ -168,6 +197,7 @@ def _render_report(
         "- test_pass_rate：生成代码在沙箱中真实执行断言的通过率（非模型自述）。",
         "- review P/R：评审检出类别与基准期望类别比对；gate_accuracy：门禁决策与期望一致率。",
         "- e2e_success：测试通过 且 门禁决策正确。",
+        "- Recall@k：检索前 k 命中里覆盖的相关文档比例；MRR：首个相关文档出现位置的倒数均值。",
         "",
         "## 运行配置",
         f"- LLM 后端：{cfg['backend']}；知识库文档：{cfg['knowledge_docs']} 篇",
@@ -191,6 +221,18 @@ def _render_report(
         f"| 门禁准确率 | {h['gate_accuracy']:.4f} |",
         f"| 端到端成功率 | {h['e2e_success_rate']:.4f} |",
         "",
+    ]
+    if r is not None:
+        lines += [
+            "## Retrieval 层（向量检索质量）",
+            "| 指标 | 值 |",
+            "|---|---|",
+            f"| Recall@{cfg.get('retrieval_k', 3)} | {r['recall_at_k']:.4f} |",
+            f"| MRR | {r['mrr']:.4f} |",
+            f"| 检索查询数 | {r['queries']} |",
+            "",
+        ]
+    lines += [
         "## 失败案例与归因（最早引入点）",
         "| 任务 | 来源 | 归因环节 | 证据链 |",
         "|---|---|---|---|",

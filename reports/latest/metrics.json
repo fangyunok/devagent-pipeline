@@ -1,10 +1,12 @@
 {
-  "run_id": "651831c7af96",
+  "run_id": "cd231fa7ba9e",
   "config": {
     "backend": "mock",
     "knowledge_docs": 3,
     "eval_tasks": 8,
-    "model_probes": 6
+    "model_probes": 6,
+    "retrieval_queries": 8,
+    "retrieval_k": 3
   },
   "model_layer": {
     "field_precision": 0.8571,
@@ -32,6 +34,11 @@
     "actual_issue_total": 2,
     "issue_hit": 2
   },
+  "retrieval_layer": {
+    "queries": 8,
+    "recall_at_k": 1.0,
+    "mrr": 0.875
+  },
   "failures": [
     {
       "task_id": "DEF-003",
@@ -49,10 +56,10 @@
     }
   ],
   "stage_durations_ms": {
-    "requirement": 0.75,
-    "codegen": 0.82,
-    "test": 856.3,
-    "review": 1.21
+    "requirement": 0.4,
+    "codegen": 0.4,
+    "test": 949.04,
+    "review": 0.53
   },
   "gate": {
     "passed": true,

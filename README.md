@@ -7,7 +7,7 @@
 
 面向真实研发链路（需求 / 缺陷 / QA issue / 历史 MR）建设评测基准：每个环节的产出都是结构化 artifact，测试环节在沙箱中**真实执行**生成代码，评审环节作为质量门禁拦截危险变更；失败案例沿链路归因到「最早引入点」，归因结果自动转为知识库候选条目，形成 **量 → 反馈 → 沉淀 → 再量** 闭环。
 
-零三方依赖、开箱即用；LLM 后端可插拔（内置离线后端复现评测数字，同一套 prompt 一键切换真实模型）。
+零三方依赖、开箱即用；LLM 后端可插拔（内置离线后端复现评测数字，同一套 prompt 一键切换真实模型）。知识库检索走**向量相似度**（可选 FAISS 加速，无 FAISS 自动退化为纯标准库哈希编码）。
 
 ## 架构
 
@@ -34,6 +34,7 @@
                               双层评测 Harness（eval/）
                 Model 层：字段级 P/R/F1 · 幻觉 · 弃答 · 注入/身份伪造探针
                 Harness 层：执行通过率 · 评审 P/R · 门禁准确率 · e2e 成功率
+                Retrieval 层：向量检索 Recall@k · MRR
                                                              │
                                           失败归因（最早引入点）+ 评测报告
                                                              ▼
@@ -44,11 +45,11 @@
 
 ```bash
 pip install -e ".[dev]"
-python scripts/run_eval.py --explain 5   # 跑双层评测，报告写入 reports/latest/
-pytest -q                                # 35 条单元/集成测试
+python scripts/run_eval.py --explain 5   # 跑三层评测，报告写入 reports/latest/
+pytest -q                                # 42 条单元/集成测试
 ```
 
-产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`summary.json`（机器可读指标 + 门禁结论）、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
+产物：`report.md`（三层指标 + 归因 + 失分样例）、`metrics.json`、`summary.json`（机器可读指标 + 门禁结论）、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
 
 运行日志输出到 stdout（`DEVAGENT_LOG_LEVEL` 可调级别），全链路事件与耗时落盘为 `trace.jsonl`，用于评测回溯与跨版本耗时对比。
 
@@ -75,6 +76,31 @@ python scripts/run_eval.py --backend openai
 DEVAGENT_SANDBOX_BACKEND=docker python scripts/run_eval.py   # 有 Docker 时容器隔离
 DEVAGENT_SANDBOX_BACKEND=subprocess python scripts/run_eval.py  # 默认，纯标准库
 ```
+
+## 向量检索层
+
+知识库检索由关键词加权打分升级为**向量相似度**：文档（标题 + 正文）与查询先 token 化，再经哈希词袋编码为 256 维 L2 归一化向量，按余弦相似度排序。两套后端共用 `retrieve(query, k)` 接口，`auto` 模式按环境自动选择：
+
+```bash
+# 默认：有 faiss 用 faiss（IndexFlatIP 内积加速），否则纯标准库哈希编码，零依赖可复现
+python scripts/run_eval.py
+
+# 安装可选加速后端（不装也不影响评测跑通）
+pip install -e ".[faiss]"
+```
+
+检索质量由 **Retrieval 层指标**量化：`Recall@k`（前 k 命中覆盖的相关文档比例）与 `MRR`（首个相关文档出现位置的倒数均值），标注集 `data/retrieval_queries.jsonl` 供评测 runner 逐条检索比对。`--retrieval-k` 可调整 Recall 的 k 值（默认 3）。
+
+## 真实语料清洗标注流水线
+
+线上沉淀的原始需求 / 缺陷 / QA issue / MR 语料，经清洗脚本切分为「查询 — 相关文档」对，产出检索标注集，支撑检索指标按产品线持续扩容：
+
+```bash
+# 输入原始语料（jsonl，每行含 text/source/product/relevant），清洗去噪后产出标注集
+python scripts/build_retrieval_set.py --input data/raw_corpus_example.jsonl --out data/retrieval_queries.jsonl
+```
+
+清洗规则：去除代码围栏、Markdown 标题井号与多余空白；缺 `relevant` 标注的条目跳过并提示，保证标注集只含可评分的干净样本。
 
 ## 质量门禁与历史基线
 
@@ -131,6 +157,14 @@ python scripts/run_eval.py --baseline reports/latest/summary.json --fail-on-regr
 | 门禁准确率 | 0.8750 |
 | 端到端成功率（测试通过 且 门禁正确） | 0.7500 |
 
+**Retrieval 层**：向量检索在标注集上的命中质量。
+
+| 指标 | 实测值 |
+|---|---|
+| Recall@3 | 1.0000 |
+| MRR | 0.8750 |
+| 检索查询数 | 8 |
+
 ## 失败归因示例（定位到最早引入点，而非暴露点）
 
 - **DEF-003（缺陷单）→ 归因 requirement**：需求写「写操作留痕」，任务卡漏提取审计要求 → 代码未接入 `audit_log` → 测试断言与评审在下游才暴露。证据链完整记录在报告与 trace 中。
@@ -140,7 +174,7 @@ python scripts/run_eval.py --baseline reports/latest/summary.json --fail-on-regr
 
 ## 测试与 CI
 
-35 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）、沙箱执行层（隔离、超时、危险能力收敛、结果分类、后端降级）、质量门禁（阈值通过/违规、基线无回归/涨跌回归/弃答越界回归、summary 落盘）。
+42 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库向量检索相关性（哈希后端排序 / 空查询 / FAISS 退化）、检索指标（Recall@k / MRR 聚合）、语料清洗流水线（去围栏井号 / 空文本与缺标注过滤）、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）、沙箱执行层（隔离、超时、危险能力收敛、结果分类、后端降级）、质量门禁（阈值通过/违规、基线无回归/涨跌回归/弃答越界回归、summary 落盘）。
 
 GitHub Actions 两道流水线：
 - **lint**：ruff 静态检查 + 格式检查 + mypy 类型检查；
@@ -148,7 +182,7 @@ GitHub Actions 两道流水线：
 
 ## Roadmap
 
-- 检索层：接入向量检索后端（FAISS / Milvus）与 reranker，保持 `retrieve(query, k)` 接口不变，补齐 Recall@k / MRR 检索指标。
-- 基准扩容：接入真实需求 / 缺陷 / MR 语料的清洗与标注流水线，按产品线拆分数据集。
+- 检索层：接入 reranker（交叉编码器精排）与多路召回（BM25 + 向量），补齐 Recall@k / MRR 的分产品线拆解。
+- 基准扩容：真实需求 / 缺陷 / MR 语料按产品线拆分的更大规模标注集，接入 CI 固定基线。
 - 执行层：多文件 MR 与增量评审。
 - 门禁演进：固定基线快照接入 CI（将本次通过结果固化为下一轮的对比基准），按产品线拆分阈值。

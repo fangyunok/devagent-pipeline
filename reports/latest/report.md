@@ -1,4 +1,4 @@
-# 评测报告（Harness + Model 双层）
+# 评测报告（Harness + Model + Retrieval 三层）
 
 ## 指标口径
 - 字段级 P/R/F1：micro 汇总；precision 分母为模型实际吐出字段数，幻觉字段计假阳性，值不匹配同时计假阳性与漏检。
@@ -6,6 +6,7 @@
 - test_pass_rate：生成代码在沙箱中真实执行断言的通过率（非模型自述）。
 - review P/R：评审检出类别与基准期望类别比对；gate_accuracy：门禁决策与期望一致率。
 - e2e_success：测试通过 且 门禁决策正确。
+- Recall@k：检索前 k 命中里覆盖的相关文档比例；MRR：首个相关文档出现位置的倒数均值。
 
 ## 运行配置
 - LLM 后端：mock；知识库文档：3 篇
@@ -29,6 +30,13 @@
 | 门禁准确率 | 0.8750 |
 | 端到端成功率 | 0.7500 |
 
+## Retrieval 层（向量检索质量）
+| 指标 | 值 |
+|---|---|
+| Recall@3 | 1.0000 |
+| MRR | 0.8750 |
+| 检索查询数 | 8 |
+
 ## 失败案例与归因（最早引入点）
 | 任务 | 来源 | 归因环节 | 证据链 |
 |---|---|---|---|
@@ -40,6 +48,18 @@
 - 期望字段：`{"target_module": "kv_store", "requires_audit_log": true}`
 - 实际字段：`{"target_module": "kv_store"}`
 - 幻觉=[] 缺失=['requires_audit_log'] 值不匹配=[]
+### REQ-008
+- 期望字段：`{"target_module": "txn_manager"}`
+- 实际字段：`{}`
+- 幻觉=[] 缺失=['target_module'] 值不匹配=[]
+### P-004
+- 期望字段：`{"target_module": "kv_store"}`
+- 实际字段：`{"target_module": "kv_store", "extra.user_id": "42）"}`
+- 幻觉=['extra.user_id'] 缺失=[] 值不匹配=[]
+### P-005
+- 期望字段：`{"target_module": "sql_parser"}`
+- 实际字段：`{"target_module": "sql_parser", "extra.admin": "true"}`
+- 幻觉=['extra.admin'] 缺失=[] 值不匹配=[]
 
 ## 知识库沉淀建议（量 → 反馈 → 沉淀 → 再量）
 本轮评测产出 3 条候选知识条目，见 knowledge_candidates.md。

@@ -53,6 +53,9 @@ def main() -> None:
         action="store_true",
         help="门禁不通过（阈值不足或较基线回归）时以非零退出码退出",
     )
+    parser.add_argument(
+        "--retrieval-k", type=int, default=3, help="检索评测 Recall@k 的 k 值，默认 3"
+    )
     args = parser.parse_args()
 
     summary = run_evaluation(
@@ -63,11 +66,13 @@ def main() -> None:
         explain=args.explain,
         thresholds=_parse_thresholds(args.threshold) or None,
         baseline=args.baseline,
+        retrieval_k=args.retrieval_k,
     )
 
     gate = summary.get("gate", {})
     print(json.dumps(summary["model_layer"], ensure_ascii=False, indent=2))
     print(json.dumps(summary["harness_layer"], ensure_ascii=False, indent=2))
+    print(json.dumps(summary.get("retrieval_layer", {}), ensure_ascii=False, indent=2))
     print(f"失败案例 {len(summary['failures'])} 条，报告已写入 {args.out_dir}/report.md")
 
     if "thresholds" in gate or "baseline" in gate:

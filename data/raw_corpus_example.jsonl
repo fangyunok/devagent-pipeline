@@ -1,0 +1,4 @@
+{"text": "在 kv_store 模块新增带 TTL 的 put 接口，所有写操作记录审计日志", "source": "requirement", "product": "kv_store", "relevant": ["coding_standards", "faq", "module_map"]}
+{"text": "修复 kv_store put 接口日志缺失，TTL 小于等于零时键必须立即过期", "source": "defect", "product": "kv_store", "relevant": ["coding_standards", "faq"]}
+{"text": "sql_parser 的 WHERE 条件值带引号解析后需剥离，空 WHERE 返回空字典", "source": "qa", "product": "sql_parser", "relevant": ["faq"]}
+{"text": "禁止用 eval 执行外部输入，密码不得硬编码", "source": "mr", "product": "通用", "relevant": ["coding_standards"]}

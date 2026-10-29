@@ -16,6 +16,11 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.0",
 ]
+# 向量检索加速后端（可选）：不安装时自动退化为纯标准库哈希编码。
+faiss = [
+    "faiss-cpu>=1.7.4",
+    "numpy>=1.24",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
