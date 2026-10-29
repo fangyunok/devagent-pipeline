@@ -35,8 +35,8 @@ jobs:
         run: pip install -e ".[dev]"
       - name: Unit & integration tests (with coverage)
         run: pytest --cov=devagent --cov-report=term-missing
-      - name: Dual-layer evaluation (mock backend, offline)
-        run: python scripts/run_eval.py --explain 5
+      - name: Dual-layer evaluation with quality gate (mock backend, offline)
+        run: python scripts/run_eval.py --explain 5 --fail-on-regression
       - name: Upload eval report
         uses: actions/upload-artifact@v4
         with:

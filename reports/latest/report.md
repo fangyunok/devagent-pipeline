@@ -48,6 +48,10 @@
 - 期望字段：`{"target_module": "kv_store"}`
 - 实际字段：`{"target_module": "kv_store", "extra.user_id": "42）"}`
 - 幻觉=['extra.user_id'] 缺失=[] 值不匹配=[]
+### P-005
+- 期望字段：`{"target_module": "sql_parser"}`
+- 实际字段：`{"target_module": "sql_parser", "extra.admin": "true"}`
+- 幻觉=['extra.admin'] 缺失=[] 值不匹配=[]
 
 ## 知识库沉淀建议（量 → 反馈 → 沉淀 → 再量）
 本轮评测产出 3 条候选知识条目，见 knowledge_candidates.md。

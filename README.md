@@ -45,10 +45,10 @@
 ```bash
 pip install -e ".[dev]"
 python scripts/run_eval.py --explain 5   # 跑双层评测，报告写入 reports/latest/
-pytest -q                                # 28 条单元/集成测试
+pytest -q                                # 35 条单元/集成测试
 ```
 
-产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
+产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`summary.json`（机器可读指标 + 门禁结论）、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
 
 运行日志输出到 stdout（`DEVAGENT_LOG_LEVEL` 可调级别），全链路事件与耗时落盘为 `trace.jsonl`，用于评测回溯与跨版本耗时对比。
 
@@ -75,6 +75,20 @@ python scripts/run_eval.py --backend openai
 DEVAGENT_SANDBOX_BACKEND=docker python scripts/run_eval.py   # 有 Docker 时容器隔离
 DEVAGENT_SANDBOX_BACKEND=subprocess python scripts/run_eval.py  # 默认，纯标准库
 ```
+
+## 质量门禁与历史基线
+
+评测结果不仅产出报告，更是一道**可拦截质量退化的门禁**：核心指标低于阈值即判不通过，与历史基线（上一次通过的 `summary.json`）逐指标对比，标出涨/跌/平并判定回归。
+
+```bash
+# 阈值门禁：核心指标低于阈值即非零退出
+python scripts/run_eval.py --threshold e2e_success_rate=0.7 --fail-on-regression
+
+# 基线对比：较历史基线回归即非零退出
+python scripts/run_eval.py --baseline reports/latest/summary.json --fail-on-regression
+```
+
+内置阈值（`src/devagent/eval/gate.py`）为基准实测值留出空间，拦「明显退化」而非卡正常波动；`summary.json` 内含结构化门禁结论（通过与否 + 违规项 + 阈值 + 基线差异），供 CI 与外部看板直接消费。
 
 ## 配置
 
@@ -126,15 +140,15 @@ DEVAGENT_SANDBOX_BACKEND=subprocess python scripts/run_eval.py  # 默认，纯�
 
 ## 测试与 CI
 
-28 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）、沙箱执行层（隔离、超时、危险能力收敛、结果分类、后端降级）。
+35 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）、沙箱执行层（隔离、超时、危险能力收敛、结果分类、后端降级）、质量门禁（阈值通过/违规、基线无回归/涨跌回归/弃答越界回归、summary 落盘）。
 
 GitHub Actions 两道流水线：
 - **lint**：ruff 静态检查 + 格式检查 + mypy 类型检查；
-- **test**：Python 3.10/3.11/3.12 矩阵跑测试（带覆盖率）+ 离线评测，报告作为 artifact 上传。
+- **test**：Python 3.10/3.11/3.12 矩阵跑测试（带覆盖率）+ 离线评测（`--fail-on-regression` 门禁，指标跌破阈值即红），报告作为 artifact 上传。
 
 ## Roadmap
 
 - 检索层：接入向量检索后端（FAISS / Milvus）与 reranker，保持 `retrieve(query, k)` 接口不变，补齐 Recall@k / MRR 检索指标。
 - 基准扩容：接入真实需求 / 缺陷 / MR 语料的清洗与标注流水线，按产品线拆分数据集。
 - 执行层：多文件 MR 与增量评审。
-- 质量门禁：固定基准 + 阈值门禁接入 CI，指标跌破即红。
+- 门禁演进：固定基线快照接入 CI（将本次通过结果固化为下一轮的对比基准），按产品线拆分阈值。

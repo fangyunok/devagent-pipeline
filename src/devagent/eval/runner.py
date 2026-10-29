@@ -12,6 +12,7 @@ from ..pipeline import DevPipeline, new_run_id
 from ..schemas import TaskCard
 from ..trace import Trace
 from .attribution import attribute_failure
+from .gate import check_thresholds, compare_baseline, load_baseline, write_summary
 from .metrics import compare_fields, flatten_card, summarize_harness, summarize_model
 
 
@@ -34,7 +35,8 @@ def _model_record(task_id: str, expected_card: dict, card: TaskCard) -> dict[str
 
 def run_evaluation(knowledge_dir: str | Path, data_dir: str | Path,
                    out_dir: str | Path, backend: str = "mock",
-                   explain: int = 0) -> dict[str, Any]:
+                   explain: int = 0, thresholds: dict[str, float] | None = None,
+                   baseline: str | Path | None = None) -> dict[str, Any]:
     data_dir, out_dir = Path(data_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     pipeline = DevPipeline(knowledge_dir, backend=backend)
@@ -74,6 +76,12 @@ def run_evaluation(knowledge_dir: str | Path, data_dir: str | Path,
     harness_metrics = summarize_harness(harness_records)
     candidates = _knowledge_candidates(failures, model_records)
 
+    # 质量门禁：阈值校验 + 历史基线对比（有基线时）。
+    gate = check_thresholds(model_metrics, harness_metrics, thresholds)
+    if baseline is not None:
+        baseline_data = load_baseline(baseline)
+        gate["baseline"] = compare_baseline(model_metrics, harness_metrics, baseline_data)
+
     summary = {
         "run_id": run_id,
         "config": {
@@ -86,8 +94,10 @@ def run_evaluation(knowledge_dir: str | Path, data_dir: str | Path,
         "harness_layer": harness_metrics,
         "failures": failures,
         "stage_durations_ms": trace.stage_durations_ms(),
+        "gate": gate,
     }
     trace.write(out_dir / "trace.jsonl")
+    write_summary(summary, gate, out_dir)
     (out_dir / "metrics.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     (out_dir / "traces.json").write_text(json.dumps(traces, ensure_ascii=False, indent=2), encoding="utf-8")
     (out_dir / "report.md").write_text(
