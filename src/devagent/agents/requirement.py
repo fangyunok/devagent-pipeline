@@ -4,9 +4,11 @@
 """
 from __future__ import annotations
 
+from ..config import Config
 from ..knowledge import KnowledgeStore
 from ..llm import LLMClient, extract_json
 from ..schemas import TaskCard
+from ..trace import LOGGER
 
 SYSTEM = """你是研发链路中的需求解析 Agent。把输入整理为结构化任务卡（JSON）。
 受控字段：task_id, title, target_module, language, acceptance_criteria, requires_audit_log。
@@ -18,9 +20,10 @@ SYSTEM = """你是研发链路中的需求解析 Agent。把输入整理为结�
 
 
 class RequirementAgent:
-    def __init__(self, llm: LLMClient, knowledge: KnowledgeStore):
+    def __init__(self, llm: LLMClient, knowledge: KnowledgeStore, config: Config | None = None):
         self.llm = llm
         self.knowledge = knowledge
+        self.config = config
 
     def run(self, task: dict) -> TaskCard:
         docs = self.knowledge.retrieve(task["input"], k=2)
@@ -30,6 +33,8 @@ class RequirementAgent:
             f"INPUT:\n{task['input']}\n"
             f"KNOWLEDGE:\n{self.knowledge.format_for_prompt(docs)}"
         )
+        LOGGER.info("requirement: 解析任务 %s（注入 %d 篇知识）",
+                    task["task_id"], len(docs))
         data = extract_json(self.llm.complete(SYSTEM, user))
         data["task_id"] = task["task_id"]  # task_id 由系统分配，不信任模型输出
         return TaskCard.from_dict(data)

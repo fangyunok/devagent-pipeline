@@ -1,0 +1,80 @@
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.8819344, "task_id": "REQ-001", "source": "requirement"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.881953, "task_id": "REQ-001"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.887866, "duration_ms": 5.9, "task_id": "REQ-001", "target_module": "kv_store", "requires_audit_log": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.887872, "task_id": "REQ-001"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.8889527, "duration_ms": 1.08, "task_id": "REQ-001", "files": ["kv_store/impl.py"], "retrieved_knowledge": ["coding_standards", "module_map", "faq"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.8889568, "task_id": "REQ-001"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.8896046, "duration_ms": 0.64, "task_id": "REQ-001", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.8896072, "task_id": "REQ-001"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.8907373, "duration_ms": 1.13, "task_id": "REQ-001", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.8907433, "task_id": "REQ-001", "passed": true, "approved": true}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.8908346, "task_id": "REQ-002", "source": "requirement"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.8908372, "task_id": "REQ-002"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.8917282, "duration_ms": 0.89, "task_id": "REQ-002", "target_module": "kv_store", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.8917315, "task_id": "REQ-002"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.892705, "duration_ms": 0.97, "task_id": "REQ-002", "files": ["kv_store/impl.py"], "retrieved_knowledge": ["coding_standards", "faq", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.892708, "task_id": "REQ-002"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9435408, "duration_ms": 50.82, "task_id": "REQ-002", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9435468, "task_id": "REQ-002"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.9446828, "duration_ms": 1.13, "task_id": "REQ-002", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.944688, "task_id": "REQ-002", "passed": true, "approved": true}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.944802, "task_id": "DEF-003", "source": "defect"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9448051, "task_id": "DEF-003"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.9458966, "duration_ms": 1.09, "task_id": "DEF-003", "target_module": "kv_store", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9459002, "task_id": "DEF-003"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.9474044, "duration_ms": 1.49, "task_id": "DEF-003", "files": ["kv_store/impl.py"], "retrieved_knowledge": ["coding_standards", "faq", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.9474092, "task_id": "DEF-003"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9482849, "duration_ms": 0.86, "task_id": "DEF-003", "passed": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9482899, "task_id": "DEF-003"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.949445, "duration_ms": 1.15, "task_id": "DEF-003", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9494493, "task_id": "DEF-003", "passed": false, "approved": true}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.9496024, "task_id": "REQ-004", "source": "requirement"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9496045, "task_id": "REQ-004"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.9509459, "duration_ms": 1.33, "task_id": "REQ-004", "target_module": "sql_parser", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9509494, "task_id": "REQ-004"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.9521806, "duration_ms": 1.22, "task_id": "REQ-004", "files": ["sql_parser/impl.py"], "retrieved_knowledge": ["faq", "coding_standards", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.952184, "task_id": "REQ-004"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9526525, "duration_ms": 0.46, "task_id": "REQ-004", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9526556, "task_id": "REQ-004"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.953526, "duration_ms": 0.87, "task_id": "REQ-004", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9535291, "task_id": "REQ-004", "passed": true, "approved": true}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.9536068, "task_id": "QA-005", "source": "qa_issue"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9536092, "task_id": "QA-005"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.954445, "duration_ms": 0.83, "task_id": "QA-005", "target_module": "kv_store", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9544475, "task_id": "QA-005"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.9553676, "duration_ms": 0.92, "task_id": "QA-005", "files": ["kv_store/impl.py"], "retrieved_knowledge": ["coding_standards", "faq", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.9553704, "task_id": "QA-005"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9558847, "duration_ms": 0.51, "task_id": "QA-005", "passed": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9558873, "task_id": "QA-005"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.9565866, "duration_ms": 0.7, "task_id": "QA-005", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9565892, "task_id": "QA-005", "passed": false, "approved": true}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.9566708, "task_id": "REQ-006", "source": "requirement"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9566734, "task_id": "REQ-006"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.957538, "duration_ms": 0.86, "task_id": "REQ-006", "target_module": "kv_store", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9575408, "task_id": "REQ-006"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.958486, "duration_ms": 0.94, "task_id": "REQ-006", "files": ["kv_store/impl.py"], "retrieved_knowledge": ["coding_standards", "module_map", "faq"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.958489, "task_id": "REQ-006"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9589515, "duration_ms": 0.46, "task_id": "REQ-006", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.958954, "task_id": "REQ-006"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.9596677, "duration_ms": 0.71, "task_id": "REQ-006", "approved": false, "issue_count": 1}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9596703, "task_id": "REQ-006", "passed": true, "approved": false}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.959744, "task_id": "MR-007", "source": "history_mr"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9597461, "task_id": "MR-007"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.960666, "duration_ms": 0.91, "task_id": "MR-007", "target_module": "sql_parser", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9606693, "task_id": "MR-007"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.9615488, "duration_ms": 0.88, "task_id": "MR-007", "files": ["sql_parser/impl.py"], "retrieved_knowledge": ["coding_standards", "faq", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.9615521, "task_id": "MR-007"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.9619803, "duration_ms": 0.42, "task_id": "MR-007", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9619827, "task_id": "MR-007"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.9627395, "duration_ms": 0.75, "task_id": "MR-007", "approved": false, "issue_count": 1}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9627428, "task_id": "MR-007", "passed": true, "approved": false}
+{"run_id": "dfe4cdb09b66", "event": "task_start", "ts": 1793240384.96282, "task_id": "REQ-008", "source": "requirement"}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "requirement", "ts": 1793240384.9628224, "task_id": "REQ-008"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "requirement", "ts": 1793240384.9641569, "duration_ms": 1.32, "task_id": "REQ-008", "target_module": "", "requires_audit_log": false}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "codegen", "ts": 1793240384.9641619, "task_id": "REQ-008"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "codegen", "ts": 1793240384.9655654, "duration_ms": 1.39, "task_id": "REQ-008", "files": ["common/impl.py"], "retrieved_knowledge": ["coding_standards", "faq", "module_map"]}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "test", "ts": 1793240384.9655697, "task_id": "REQ-008"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "test", "ts": 1793240384.965882, "duration_ms": 0.31, "task_id": "REQ-008", "passed": true}
+{"run_id": "dfe4cdb09b66", "event": "stage_start", "stage": "review", "ts": 1793240384.9658875, "task_id": "REQ-008"}
+{"run_id": "dfe4cdb09b66", "event": "stage_end", "stage": "review", "ts": 1793240384.9671, "duration_ms": 1.2, "task_id": "REQ-008", "approved": true, "issue_count": 0}
+{"run_id": "dfe4cdb09b66", "event": "task_end", "ts": 1793240384.9671063, "task_id": "REQ-008", "passed": true, "approved": true}

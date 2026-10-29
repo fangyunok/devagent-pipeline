@@ -1,4 +1,5 @@
 {
+  "run_id": "dfe4cdb09b66",
   "config": {
     "backend": "mock",
     "knowledge_docs": 3,
@@ -46,5 +47,11 @@
       "evidence": "沙箱执行失败：ttl<=0 必须立即过期",
       "suggestion": "将失败断言语义沉淀为踩坑 FAQ（边界条件/异常路径）"
     }
-  ]
+  ],
+  "stage_durations_ms": {
+    "requirement": 1.32,
+    "codegen": 1.39,
+    "test": 0.31,
+    "review": 1.2
+  }
 }

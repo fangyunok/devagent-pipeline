@@ -2,21 +2,25 @@
 
 Harness 层指标必须来自真实执行，而不是模型自述「测试通过」。
 benchmark 模式下执行基准公开测试；generate_tests() 支持由 LLM 生成用例。
+（阶段二将接入容器隔离执行，本类保持接口不变。）
 """
 from __future__ import annotations
 
 import traceback
 
+from ..config import Config
 from ..llm import LLMClient, extract_json
 from ..schemas import CodeChange, TaskCard, TestReport
+from ..trace import LOGGER
 
 GEN_SYSTEM = """你是测试 Agent。根据任务卡与代码生成 Python 断言式测试用例（不使用 pytest 框架），
 覆盖正常路径与边界条件。输出 JSON：{"test_code": "..."}。"""
 
 
 class TesterAgent:
-    def __init__(self, llm: LLMClient | None = None):
+    def __init__(self, llm: LLMClient | None = None, config: Config | None = None):
         self.llm = llm
+        self.config = config
 
     def generate_tests(self, card: TaskCard, code: CodeChange) -> str:
         if self.llm is None:

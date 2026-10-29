@@ -48,7 +48,9 @@ python scripts/run_eval.py --explain 5   # 跑双层评测，报告写入 report
 pytest -q                                # 11 条单元/集成测试
 ```
 
-产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`traces.json`（全链路 trace）、`knowledge_candidates.md`（评测反哺的知识候选）。
+产物：`report.md`（双层指标 + 归因 + 失分样例）、`metrics.json`、`traces.json`（全链路 trace）、`trace.jsonl`（结构化事件流水：run_id、各阶段耗时、字段）、`knowledge_candidates.md`（评测反哺的知识候选）。
+
+运行日志输出到 stdout（`DEVAGENT_LOG_LEVEL` 可调级别），全链路事件与耗时落盘为 `trace.jsonl`，用于评测回溯与跨版本耗时对比。
 
 切换真实模型（同一套 prompt 与指标）：
 
@@ -56,6 +58,21 @@ pytest -q                                # 11 条单元/集成测试
 export OPENAI_API_KEY=... OPENAI_BASE_URL=... OPENAI_MODEL=...
 python scripts/run_eval.py --backend openai
 ```
+
+真实模型后端内置**重试 + 指数退避 + 429 限流处理 + 超时收敛**，模型输出解析失败抛结构化异常；相关参数可用 `DEVAGENT_LLM_MAX_RETRIES` / `DEVAGENT_LLM_TIMEOUT` / `DEVAGENT_LLM_BACKOFF` 调整。
+
+## 配置
+
+统一配置层（`src/devagent/config.py`），优先级：代码默认值 < `DEVAGENT_*` 环境变量 < 显式传参。
+
+| 环境变量 | 默认 | 说明 |
+|---|---|---|
+| `DEVAGENT_BACKEND` | mock | LLM 后端（mock / openai） |
+| `DEVAGENT_LLM_MAX_RETRIES` | 3 | LLM 调用最大重试次数 |
+| `DEVAGENT_LLM_TIMEOUT` | 120 | 单次调用超时（秒） |
+| `DEVAGENT_LOG_LEVEL` | INFO | 日志级别 |
+| `DEVAGENT_TRACE` | true | 是否落盘 trace.jsonl |
+| `DEVAGENT_KNOWLEDGE_DIR` | knowledge_docs | 知识库目录 |
 
 ## 评测基准设计
 
@@ -91,13 +108,13 @@ python scripts/run_eval.py --backend openai
 
 ## 测试与 CI
 
-11 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性。
+20 条测试覆盖：指标口径（幻觉双罚 / 弃答同分母 / 评审召回）、全链路集成（正常任务通过、危险代码被门禁拦截、需求漏提取沿链路传播并正确归因、TTL 边界归因 codegen）、知识库检索相关性、评测 runner 端到端数字一致性、工程底座（配置优先级、trace 落盘与耗时聚合、LLM 重试与结构化异常）。
 
 GitHub Actions：Python 3.10/3.11/3.12 矩阵跑测试 + 离线评测，报告作为 artifact 上传。
 
 ## Roadmap
 
+- 执行层：容器隔离沙箱（资源限额与超时控制）、多文件 MR 与增量评审。
 - 检索层：接入向量检索后端（FAISS / Milvus）与 reranker，保持 `retrieve(query, k)` 接口不变，补齐 Recall@k / MRR 检索指标。
 - 基准扩容：接入真实需求 / 缺陷 / MR 语料的清洗与标注流水线，按产品线拆分数据集。
 - 质量门禁：固定基准 + 阈值门禁接入 CI，指标跌破即红。
-- 执行层：沙箱资源限额与超时控制、多文件 MR 与增量评审。

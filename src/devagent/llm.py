@@ -1,17 +1,35 @@
-"""可插拔 LLM 后端。
+"""可插拔 LLM 后端（工程化版）。
 
-- MockLLM：确定性规则后端，离线/CI 可复现整条链路与评测数字；
-- OpenAICompatibleClient：同一套 prompt 切换到真实模型（环境变量配置）。
+- LLMError：统一异常，携带阶段与可重试标记；
+- MockLLM：确定性规则后端，离线/CI 可复现；
+- OpenAICompatibleClient：重试 + 指数退避 + 429 限流 + 超时收敛；
+- extract_json：失败抛 LLMOutputError（结构化报错，而非裸抛 JSONDecodeError）。
 
-所有 Agent 只依赖 complete(system, user) 接口，换后端不改业务代码。
+所有 Agent 只依赖 complete(system, user)，换后端不改业务代码。
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import time
+import urllib.error
 import urllib.request
 from typing import Protocol
+
+from .trace import LOGGER
+
+
+class LLMError(RuntimeError):
+    """LLM 调用失败。retryable 为 True 时调用方/客户端可重试。"""
+
+    def __init__(self, message: str, retryable: bool = False):
+        super().__init__(message)
+        self.retryable = retryable
+
+
+class LLMOutputError(LLMError):
+    """模型输出不符合预期结构（如 JSON 解析失败）。"""
 
 
 class LLMClient(Protocol):
@@ -20,16 +38,22 @@ class LLMClient(Protocol):
 
 
 def extract_json(text: str) -> dict:
-    """从模型输出中容错提取 JSON 对象。"""
-    text = text.strip()
-    match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.S)
+    """从模型输出中容错提取 JSON 对象；失败抛 LLMOutputError。"""
+    cleaned = text.strip()
+    match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", cleaned, re.S)
     if match:
-        text = match.group(1)
+        cleaned = match.group(1)
     else:
-        start, end = text.find("{"), text.rfind("}")
+        start, end = cleaned.find("{"), cleaned.rfind("}")
         if start != -1 and end != -1:
-            text = text[start : end + 1]
-    return json.loads(text)
+            cleaned = cleaned[start : end + 1]
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise LLMOutputError(f"模型输出无法解析为 JSON: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise LLMOutputError(f"模型输出 JSON 顶层应为对象，实际为 {type(parsed).__name__}")
+    return parsed
 
 
 class MockLLM:
@@ -46,7 +70,7 @@ class MockLLM:
             return self._coder(user)
         if user.startswith("AGENT: reviewer"):
             return self._reviewer(user)
-        raise ValueError("MockLLM 无法识别的 Agent 请求")
+        raise LLMError("MockLLM 无法识别的 Agent 请求", retryable=False)
 
     # ---------- 需求解析 ----------
     def _requirement(self, user: str) -> str:
@@ -172,14 +196,20 @@ GENERIC_TEMPLATE = '''def handle():
 
 
 class OpenAICompatibleClient:
-    """OpenAI 兼容后端：OPENAI_BASE_URL / OPENAI_API_KEY / OPENAI_MODEL。"""
+    """OpenAI 兼容后端：重试 + 指数退避 + 429 限流 + 超时收敛。"""
 
-    def __init__(self, model: str | None = None):
-        self.base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        self.api_key = os.environ.get("OPENAI_API_KEY", "")
+    def __init__(self, model: str | None = None, base_url: str | None = None,
+                 api_key: str | None = None, timeout: float = 120.0,
+                 max_retries: int = 3, backoff_base: float = 1.0):
+        self.base_url = (base_url or os.environ.get("OPENAI_BASE_URL",
+                          "https://api.openai.com/v1")).rstrip("/")
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.model = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.backoff_base = backoff_base
         if not self.api_key:
-            raise RuntimeError("使用真实模型后端前请设置 OPENAI_API_KEY")
+            raise LLMError("使用真实模型后端前请设置 OPENAI_API_KEY", retryable=False)
 
     def complete(self, system: str, user: str) -> str:
         payload = json.dumps({
@@ -190,22 +220,49 @@ class OpenAICompatibleClient:
             ],
             "temperature": 0,
         }).encode("utf-8")
-        req = urllib.request.Request(
-            f"{self.base_url.rstrip('/')}/chat/completions",
-            data=payload,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-        )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"]
+        url = f"{self.base_url}/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        last_err: Exception | None = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                req = urllib.request.Request(url, data=payload, headers=headers)
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                return data["choices"][0]["message"]["content"]
+            except urllib.error.HTTPError as exc:
+                retryable = exc.code in (429, 500, 502, 503, 504)
+                last_err = LLMError(f"LLM 请求失败 HTTP {exc.code}", retryable=retryable)
+                if not retryable or attempt >= self.max_retries:
+                    break
+                wait = self.backoff_base * (2 ** attempt)
+                LOGGER.warning("LLM 请求 HTTP %s，第 %d 次重试，%.1fs 后重试",
+                               exc.code, attempt + 1, wait)
+                time.sleep(wait)
+            except (urllib.error.URLError, TimeoutError) as exc:
+                retryable = True
+                last_err = LLMError(f"LLM 网络/超时错误: {exc}", retryable=True)
+                if attempt >= self.max_retries:
+                    break
+                wait = self.backoff_base * (2 ** attempt)
+                LOGGER.warning("LLM 网络错误，第 %d 次重试，%.1fs 后重试",
+                               attempt + 1, wait)
+                time.sleep(wait)
+        raise last_err if last_err else LLMError("LLM 调用失败", retryable=False)
 
 
-def get_llm(backend: str = "mock") -> LLMClient:
+def get_llm(backend: str = "mock", config=None) -> LLMClient:
+    if config is None:
+        from .config import default_config
+        config = default_config
     if backend == "mock":
         return MockLLM()
     if backend == "openai":
-        return OpenAICompatibleClient()
-    raise ValueError(f"未知后端: {backend}")
+        return OpenAICompatibleClient(
+            model=config.openai_model, base_url=config.openai_base_url,
+            api_key=config.openai_api_key, timeout=config.llm_timeout_seconds,
+            max_retries=config.llm_max_retries,
+            backoff_base=config.llm_backoff_base_seconds)
+    raise LLMError(f"未知后端: {backend}", retryable=False)
