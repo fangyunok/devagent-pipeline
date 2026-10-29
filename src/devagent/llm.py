@@ -76,7 +76,8 @@ class MockLLM:
     # ---------- 需求解析 ----------
     def _requirement(self, user: str) -> str:
         text = user.split("INPUT:\n", 1)[1].split("\nKNOWLEDGE:", 1)[0].strip()
-        task_id = re.search(r"TASK_ID: (\S+)", user).group(1)
+        match = re.search(r"TASK_ID: (\S+)", user)
+        task_id = match.group(1) if match else ""
         module = ""
         m = re.search(r"([A-Za-z_]\w*)\s*模块", text)
         if m:
