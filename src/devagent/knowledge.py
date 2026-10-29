@@ -28,15 +28,20 @@ class KnowledgeStore:
     def _load(self) -> None:
         for path in sorted(self.docs_dir.glob("*.md")):
             text = path.read_text(encoding="utf-8")
-            title = next((l.lstrip("# ").strip() for l in text.splitlines() if l.startswith("#")), path.stem)
-            self.docs.append(KnowledgeDoc(doc_id=path.stem, title=title, content=text, path=str(path)))
+            title = next(
+                (line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("#")),
+                path.stem,
+            )
+            self.docs.append(
+                KnowledgeDoc(doc_id=path.stem, title=title, content=text, path=str(path))
+            )
 
     @staticmethod
     def _tokenize(text: str) -> list[str]:
         # 英文标识符 + 中文二元组，兼顾模块名与自然语言查询。
         words = re.findall(r"[a-zA-Z_]\w+", text.lower())
         chars = re.findall(r"[一-鿿]", text)
-        bigrams = [a + b for a, b in zip(chars, chars[1:])]
+        bigrams = [a + b for a, b in zip(chars, chars[1:], strict=False)]
         return words + bigrams
 
     def retrieve(self, query: str, k: int = 2) -> list[KnowledgeDoc]:

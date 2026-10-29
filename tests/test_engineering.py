@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from devagent.config import Config, load_config
+from devagent.config import load_config
 from devagent.llm import LLMError, LLMOutputError, extract_json
 from devagent.trace import Trace
 
@@ -46,7 +46,7 @@ def test_trace_records_and_aggregates_durations(tmp_path, monkeypatch):
     t.record("task_end", passed=True)
     out = tmp_path / "trace.jsonl"
     t.write(out)
-    lines = [json.loads(l) for l in out.read_text(encoding="utf-8").splitlines()]
+    lines = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
     assert lines[0]["event"] == "stage_start"
     assert lines[-1]["event"] == "task_end"
     assert "req" in t.stage_durations_ms()

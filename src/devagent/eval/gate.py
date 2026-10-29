@@ -84,7 +84,8 @@ def load_baseline(path: str | Path) -> dict[str, Any]:
 
 
 def compare_baseline(model_layer: dict[str, Any], harness_layer: dict[str, Any],
-                     baseline: dict[str, Any], tolerance: float = _DEFAULT_TOLERANCE) -> dict[str, Any]:
+                     baseline: dict[str, Any],
+                     tolerance: float = _DEFAULT_TOLERANCE) -> dict[str, Any]:
     """与历史基线逐指标对比，给出涨/跌/平与回归判定。"""
     flat = _flat_metrics(model_layer, harness_layer)
     base_flat = _flat_metrics(baseline.get("model_layer", {}),

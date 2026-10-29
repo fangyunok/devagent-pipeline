@@ -41,6 +41,10 @@ src = ["src", "tests", "scripts"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 ignore = ["E501"]  # 行长度交给 formatter
 
+[tool.ruff.lint.per-file-ignores]
+# 测试通过 sys.path.insert 导入 src 下的包，E402（import 不在顶部）是必要模式。
+"tests/*.py" = ["E402"]
+
 [tool.mypy]
 python_version = "3.10"
 ignore_missing_imports = true

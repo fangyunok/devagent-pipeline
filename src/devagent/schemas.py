@@ -7,7 +7,7 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -28,7 +28,7 @@ class TaskCard:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TaskCard":
+    def from_dict(cls, data: dict[str, Any]) -> TaskCard:
         known = {
             "task_id", "title", "target_module", "language",
             "acceptance_criteria", "requires_audit_log",

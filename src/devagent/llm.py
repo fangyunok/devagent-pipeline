@@ -100,11 +100,18 @@ class MockLLM:
     # ---------- 代码生成 ----------
     def _coder(self, user: str) -> str:
         card = json.loads(user.split("TASK_CARD:\n", 1)[1].split("\nKNOWLEDGE:", 1)[0])
-        raw_input = user.split("ORIGINAL_INPUT:\n", 1)[1].strip() if "ORIGINAL_INPUT:" in user else ""
+        raw_input = (
+            user.split("ORIGINAL_INPUT:\n", 1)[1].strip()
+            if "ORIGINAL_INPUT:" in user
+            else ""
+        )
         module = card.get("target_module") or "common"
         audit = bool(card.get("requires_audit_log"))
         if module == "kv_store":
-            content = KV_TEMPLATE.replace("    # AUDIT_HOOK", '    audit_log("put", key)' if audit else "    # AUDIT_HOOK")
+            content = KV_TEMPLATE.replace(
+                "    # AUDIT_HOOK",
+                '    audit_log("put", key)' if audit else "    # AUDIT_HOOK",
+            )
         elif module == "sql_parser":
             content = SQL_TEMPLATE
         else:
@@ -124,7 +131,9 @@ class MockLLM:
         card = json.loads(user.split("TASK_CARD:\n", 1)[1].split("\nCODE:", 1)[0])
         code = user.split("CODE:\n", 1)[1].split("\nKNOWLEDGE:", 1)[0]
         issues = []
-        if card.get("requires_audit_log") and "audit_log(" not in code.replace("def audit_log(", ""):
+        if card.get("requires_audit_log") and "audit_log(" not in code.replace(
+            "def audit_log(", ""
+        ):
             issues.append({
                 "severity": "major", "category": "missing_audit_log",
                 "location": "put", "message": "任务卡要求审计日志，但写操作未调用 audit_log",

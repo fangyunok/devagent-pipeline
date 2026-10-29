@@ -70,7 +70,9 @@ def summarize_model(records: list[dict[str, Any]]) -> dict[str, Any]:
         "field_recall": round(recall, 4),
         "field_f1": round(f1, 4),
         "tp": tp, "fp": fp, "fn": fn,
-        "hallucination_fields": sorted({f for r in records for f in r["comparison"]["hallucinated"]}),
+        "hallucination_fields": sorted(
+            {f for r in records for f in r["comparison"]["hallucinated"]}
+        ),
         "abstain_cases": len(abstain),
         "abstain_violations": violations,
         "abstain_violation_rate": round(safe_div(len(violations), len(abstain)), 4),
@@ -78,7 +80,8 @@ def summarize_model(records: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def summarize_harness(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """records: [{task_id, test_passed, expected_issues, actual_issues, gate_correct, e2e_success}]"""
+    """records: [{task_id, test_passed, expected_issues, actual_issues,
+    gate_correct, e2e_success}]"""
     n = len(records)
     expected_total = sum(len(r["expected_issues"]) for r in records)
     actual_total = sum(len(r["actual_issues"]) for r in records)

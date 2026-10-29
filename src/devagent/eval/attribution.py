@@ -29,7 +29,10 @@ def attribute_failure(task: dict, result: PipelineResult) -> dict | None:
     if expected.get("target_module") and result.card.target_module != expected["target_module"]:
         return {
             "stage": "requirement",
-            "evidence": f"target_module={result.card.target_module!r}（期望 {expected['target_module']!r}）",
+            "evidence": (
+                f"target_module={result.card.target_module!r}"
+                f"（期望 {expected['target_module']!r}）"
+            ),
             "suggestion": "模块地图补充该模块的别名与归属描述",
         }
     # 2) 编码阶段：任务卡正确但代码未通过真实执行

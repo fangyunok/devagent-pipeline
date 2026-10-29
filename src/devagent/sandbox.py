@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shutil
@@ -192,10 +193,10 @@ class DockerRunner:
                                      failures=[{"name": "timeout",
                                                 "message": f"容器执行超时（>{self.timeout_seconds}s）"}])
             if proc.returncode != 0:
+                err_msg = (proc.stderr or "容器执行异常").strip()[:200]
                 return SandboxResult(passed=False, total=1, exit_code=proc.returncode,
                                      outcome="error", stderr=proc.stderr,
-                                     failures=[{"name": "runtime",
-                                                "message": (proc.stderr or "容器执行异常").strip()[:200]}])
+                                     failures=[{"name": "runtime", "message": err_msg}])
             data = json.loads(proc.stdout.strip() or "{}")
             return SandboxResult(
                 passed=bool(data.get("passed", False)),
@@ -205,10 +206,8 @@ class DockerRunner:
                 stdout=proc.stdout, stderr=proc.stderr,
             )
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(tmp_path)
-            except OSError:
-                pass
 
 
 def get_runner(backend: str = "subprocess", timeout_seconds: float = 10.0,
