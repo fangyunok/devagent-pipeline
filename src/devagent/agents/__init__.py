@@ -1,6 +1,6 @@
-from .requirement import RequirementAgent
 from .coder import CoderAgent
-from .tester import TesterAgent
+from .requirement import RequirementAgent
 from .reviewer import ReviewerAgent
+from .tester import TesterAgent
 
 __all__ = ["RequirementAgent", "CoderAgent", "TesterAgent", "ReviewerAgent"]

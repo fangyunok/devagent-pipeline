@@ -104,10 +104,9 @@ def compare_baseline(model_layer: dict[str, Any], harness_layer: dict[str, Any],
         else:
             direction = "down"
         # 越低越好：涨过容忍即回归；其余：跌过容忍即回归。
-        if key in _LOWER_IS_BETTER:
-            regressed = delta > tolerance
-        else:
-            regressed = delta < -tolerance
+        regressed = (
+            delta > tolerance if key in _LOWER_IS_BETTER else delta < -tolerance
+        )
         entry = {"metric": key, "baseline": base, "current": value,
                  "delta": delta, "direction": direction}
         diffs.append(entry)
